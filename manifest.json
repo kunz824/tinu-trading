@@ -1,0 +1,9 @@
+{
+  "name": "Tinu-Trading",
+  "short_name": "Tinu-Trading",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#10141b",
+  "theme_color": "#10141b",
+  "icons": []
+}
