@@ -110,6 +110,36 @@
     margin: 0 0 10px;
   }
 
+  .kreisdiagramm-zeile {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    margin-bottom: 16px;
+  }
+  #kreisdiagramm { flex-shrink: 0; }
+  .legende {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 13px;
+  }
+  .legende-eintrag {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .legende-punkt {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legende-eintrag .anzahl { color: var(--text-dim); }
+  .kreisdiagramm-leer {
+    color: var(--text-dim);
+    font-size: 13px;
+  }
+
   .system-liste {
     display: flex;
     flex-direction: column;
@@ -202,6 +232,10 @@
       </div>
     </div>
     <h2>Je Handelsvariante (offene Positionen)</h2>
+    <div class="kreisdiagramm-zeile" id="kreisdiagrammZeile">
+      <svg id="kreisdiagramm" viewBox="0 0 120 120" width="120" height="120"></svg>
+      <div class="legende" id="legende"></div>
+    </div>
     <div class="system-liste" id="systemListe"></div>
   </section>
 
@@ -234,13 +268,19 @@ const AKTUALISIERUNG_SEKUNDEN = 90;
 
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
 
+function formatZahlCH(wert, nachkomma = 2) {
+  const teile = Math.abs(wert).toFixed(nachkomma).split(".");
+  teile[0] = teile[0].replace(/\B(?=(\d{3})+(?!\d))/g, "'");
+  return teile.join(".");
+}
+
 function formatEUR(wert) {
   const vz = wert >= 0 ? "+" : "−";
-  return `${vz}${Math.abs(wert).toFixed(2)} EUR`;
+  return `${vz}${formatZahlCH(wert)} EUR`;
 }
 
 function setZahl(el, wert, mitVorzeichen) {
-  el.textContent = mitVorzeichen ? formatEUR(wert) : `${wert.toFixed(2)} EUR`;
+  el.textContent = mitVorzeichen ? formatEUR(wert) : `${formatZahlCH(wert)} EUR`;
   el.classList.remove("pos", "neg");
   if (mitVorzeichen) el.classList.add(wert >= 0 ? "pos" : "neg");
 }
@@ -265,7 +305,7 @@ function zeigeStatus(daten) {
   document.getElementById("standZeit").textContent = `Stand: ${zeit} Uhr`;
 
   document.getElementById("kontostand").textContent =
-    `${daten.kontostand.toFixed(2)} EUR`;
+    `${formatZahlCH(daten.kontostand)} EUR`;
   setZahl(document.getElementById("tagesPnl"), daten.tages_pnl, true);
   setZahl(document.getElementById("wochenPnl"), daten.wochen_pnl, true);
 
@@ -274,6 +314,7 @@ function zeigeStatus(daten) {
   const tradesTabelle = document.getElementById("tradesTabelle");
   tradesTabelle.innerHTML = "";
   let gesamtTrades = 0;
+  const kreisdiagrammDaten = [];
 
   for (const [system, positionen] of Object.entries(daten.positionen_je_system || {})) {
     if (system === "Unbekannt" && positionen.length === 0) continue;
@@ -286,6 +327,9 @@ function zeigeStatus(daten) {
       <span class="zahl ${summe >= 0 ? "pos" : "neg"}">${formatEUR(summe)}</span>
     `;
     systemListe.appendChild(zeile);
+    if (positionen.length > 0) {
+      kreisdiagrammDaten.push({ system, anzahl: positionen.length });
+    }
 
     for (const p of positionen) {
       gesamtTrades++;
@@ -304,6 +348,65 @@ function zeigeStatus(daten) {
 
   document.getElementById("tradesLeer").style.display =
     gesamtTrades === 0 ? "block" : "none";
+
+  zeichneKreisdiagramm(kreisdiagrammDaten);
+}
+
+// ── Kreisdiagramm (reines SVG, keine Bibliothek) ─────────────────────
+const SYSTEM_FARBEN = {
+  CopyTrading: "#d4a24e",
+  CopyTradingEnhanced: "#5aa9bb",
+  CopyTradingPlatinum: "#9b8ad1",
+  TinuAgents: "#4caf7d",
+  Unbekannt: "#5a6270",
+};
+
+function zeichneKreisdiagramm(eintraege) {
+  const svg = document.getElementById("kreisdiagramm");
+  const legende = document.getElementById("legende");
+  const zeile = document.getElementById("kreisdiagrammZeile");
+  svg.innerHTML = "";
+  legende.innerHTML = "";
+
+  const gesamt = eintraege.reduce((s, e) => s + e.anzahl, 0);
+  if (gesamt === 0) {
+    zeile.querySelector(".kreisdiagramm-leer")?.remove();
+    const hinweis = document.createElement("p");
+    hinweis.className = "kreisdiagramm-leer";
+    hinweis.textContent = "Keine offenen Positionen — Diagramm erscheint, sobald welche offen sind.";
+    legende.appendChild(hinweis);
+    return;
+  }
+
+  const radius = 50, mitte = 60, strichbreite = 16;
+  const umfang = 2 * Math.PI * radius;
+  let bisherigerAnteil = 0;
+
+  for (const { system, anzahl } of eintraege) {
+    const anteil = anzahl / gesamt;
+    const segmentLaenge = anteil * umfang;
+    const kreis = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    kreis.setAttribute("cx", mitte);
+    kreis.setAttribute("cy", mitte);
+    kreis.setAttribute("r", radius);
+    kreis.setAttribute("fill", "none");
+    kreis.setAttribute("stroke", SYSTEM_FARBEN[system] || SYSTEM_FARBEN.Unbekannt);
+    kreis.setAttribute("stroke-width", strichbreite);
+    kreis.setAttribute("stroke-dasharray", `${segmentLaenge} ${umfang - segmentLaenge}`);
+    kreis.setAttribute("stroke-dashoffset", -bisherigerAnteil * umfang);
+    kreis.setAttribute("transform", `rotate(-90 ${mitte} ${mitte})`);
+    svg.appendChild(kreis);
+    bisherigerAnteil += anteil;
+
+    const eintrag = document.createElement("div");
+    eintrag.className = "legende-eintrag";
+    eintrag.innerHTML = `
+      <span class="legende-punkt" style="background:${SYSTEM_FARBEN[system] || SYSTEM_FARBEN.Unbekannt}"></span>
+      <span>${system}</span>
+      <span class="anzahl">${anzahl}</span>
+    `;
+    legende.appendChild(eintrag);
+  }
 }
 
 // ── Register-Umschaltung ─────────────────────────────────────────────
