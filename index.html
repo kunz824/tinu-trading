@@ -225,8 +225,11 @@
 <script>
 // ── Konfiguration ─────────────────────────────────────────────────────
 // Hier die eigenen JSONBin-Zugangsdaten eintragen (siehe Anleitung).
-const BIN_ID = "HIER_BIN_ID_EINTRAGEN";
-const API_KEY = "HIER_API_KEY_EINTRAGEN";
+const BIN_ID = "6aa44985ac6210605ac1c64a";
+// WICHTIG: Hier NUR einen Nur-Lese-"Access Key" eintragen, NICHT den
+// Master-Key — dieser Code liegt in einem öffentlichen Repository, der
+// Master-Key hätte Schreib-/Löschzugriff auf ALLE Bins im Konto.
+const ACCESS_KEY = "HIER_NUR_LESE_ACCESS_KEY_EINTRAGEN";
 const AKTUALISIERUNG_SEKUNDEN = 90;
 
 const JSONBIN_URL = `https://api.jsonbin.io/v3/b/${BIN_ID}/latest`;
@@ -245,7 +248,7 @@ function setZahl(el, wert, mitVorzeichen) {
 async function ladeStatus() {
   try {
     const antwort = await fetch(JSONBIN_URL, {
-      headers: { "X-Master-Key": API_KEY }
+      headers: { "X-Access-Key": ACCESS_KEY }
     });
     if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
     const daten = (await antwort.json()).record;
