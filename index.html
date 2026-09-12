@@ -241,7 +241,7 @@
       </div>
     </div>
 
-    <h2>Heutige Ergebnisse je Handelsvariante</h2>
+    <h2 id="kreisdiagrammTitel">Heutige Ergebnisse je Handelsvariante</h2>
     <div class="kreisdiagramm-zeile" id="kreisdiagrammZeile">
       <svg id="kreisdiagramm" viewBox="0 0 120 120" width="120" height="120"></svg>
       <div class="legende" id="legende"></div>
@@ -250,6 +250,7 @@
     <h2 style="margin-top:24px;">Wochenverlauf je Handelsvariante</h2>
     <svg id="balkendiagramm" viewBox="0 0 600 230" width="100%" height="200"></svg>
     <div class="legende legende-balken" id="legendeBalken"></div>
+    <p class="kreisdiagramm-leer" style="margin-top:2px;">Auf einen Tag klicken, um ihn oben im Kreisdiagramm anzuzeigen.</p>
 
     <h2 style="margin-top:24px;">Offene Positionen je Handelsvariante</h2>
     <div class="system-liste" id="systemListe"></div>
@@ -365,13 +366,34 @@ function zeigeStatus(daten) {
   document.getElementById("tradesLeer").style.display =
     gesamtTrades === 0 ? "block" : "none";
 
-  const verlauf = daten.taegliche_ergebnisse_je_system || [];
-  const heuteEintrag = verlauf[verlauf.length - 1];
-  zeichneKreisdiagramm(heuteEintrag);
-  zeichneBalkendiagramm(verlauf);
+  wochenVerlauf = daten.taegliche_ergebnisse_je_system || [];
+  if (!wochenVerlauf.some(t => t.datum === ausgewaehltesDatum)) {
+    ausgewaehltesDatum = wochenVerlauf.length
+      ? wochenVerlauf[wochenVerlauf.length - 1].datum
+      : null;
+  }
+  aktualisiereDiagramme();
 }
 
-// ── Kreisdiagramm: heutige Ergebnisse je System (reines SVG) ─────────
+let wochenVerlauf = [];
+let ausgewaehltesDatum = null;
+
+function aktualisiereDiagramme() {
+  const eintrag = wochenVerlauf.find(t => t.datum === ausgewaehltesDatum);
+  const heute = new Date().toISOString().slice(0, 10);
+  const titel = document.getElementById("kreisdiagrammTitel");
+  if (eintrag) {
+    const datumLesbar = new Date(eintrag.datum + "T00:00:00")
+      .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
+    titel.textContent = eintrag.datum === heute
+      ? "Heutige Ergebnisse je Handelsvariante"
+      : `Ergebnisse ${datumLesbar} je Handelsvariante`;
+  }
+  zeichneKreisdiagramm(eintrag);
+  zeichneBalkendiagramm(wochenVerlauf);
+}
+
+// ── Kreisdiagramm: Ergebnisse eines Tages je System (reines SVG) ─────
 const SYSTEM_FARBEN = {
   CopyTrading: "#d4a24e",
   CopyTradingEnhanced: "#5aa9bb",
@@ -380,22 +402,22 @@ const SYSTEM_FARBEN = {
   Unbekannt: "#5a6270",
 };
 
-function zeichneKreisdiagramm(heuteEintrag) {
+function zeichneKreisdiagramm(tagEintrag) {
   const svg = document.getElementById("kreisdiagramm");
   const legende = document.getElementById("legende");
   svg.innerHTML = "";
   legende.innerHTML = "";
 
   const systeme = Object.keys(SYSTEM_FARBEN).filter(s => s !== "Unbekannt");
-  const werte = heuteEintrag
-    ? systeme.map(system => ({ system, wert: heuteEintrag[system] || 0 }))
+  const werte = tagEintrag
+    ? systeme.map(system => ({ system, wert: tagEintrag[system] || 0 }))
     : systeme.map(system => ({ system, wert: 0 }));
 
   const gesamtAbs = werte.reduce((s, e) => s + Math.abs(e.wert), 0);
   if (gesamtAbs === 0) {
     const hinweis = document.createElement("p");
     hinweis.className = "kreisdiagramm-leer";
-    hinweis.textContent = "Noch keine abgeschlossenen Trades heute.";
+    hinweis.textContent = "Noch keine abgeschlossenen Trades an diesem Tag.";
     legende.appendChild(hinweis);
     return;
   }
@@ -472,6 +494,21 @@ function zeichneBalkendiagramm(verlauf) {
 
   verlauf.forEach((tag, i) => {
     const gruppeX = i * tagBreite + 6;
+    const istAusgewaehlt = tag.datum === ausgewaehltesDatum;
+
+    // Klickbarer Hintergrundbereich für die ganze Tagesgruppe
+    const klickflaeche = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+    klickflaeche.setAttribute("x", i * tagBreite);
+    klickflaeche.setAttribute("y", 0);
+    klickflaeche.setAttribute("width", tagBreite);
+    klickflaeche.setAttribute("height", hoehe);
+    klickflaeche.setAttribute("fill", istAusgewaehlt ? "#1c2431" : "transparent");
+    klickflaeche.style.cursor = "pointer";
+    klickflaeche.addEventListener("click", () => {
+      ausgewaehltesDatum = tag.datum;
+      aktualisiereDiagramme();
+    });
+    svg.appendChild(klickflaeche);
 
     systeme.forEach((system, j) => {
       const wert = tag[system] || 0;
@@ -481,6 +518,7 @@ function zeichneBalkendiagramm(verlauf) {
       rect.setAttribute("x", x);
       rect.setAttribute("width", Math.max(balkenBreite - 2, 1));
       rect.setAttribute("fill", SYSTEM_FARBEN[system]);
+      rect.style.pointerEvents = "none";
       if (wert >= 0) {
         rect.setAttribute("y", nullLinieY - balkenHoehe);
         rect.setAttribute("height", balkenHoehe);
@@ -497,9 +535,11 @@ function zeichneBalkendiagramm(verlauf) {
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("x", gruppeX + (tagBreite - 12) / 2);
     text.setAttribute("y", hoehe - 6);
-    text.setAttribute("fill", "#8b93a3");
+    text.setAttribute("fill", istAusgewaehlt ? "#e7e6e2" : "#8b93a3");
     text.setAttribute("font-size", "12");
+    text.setAttribute("font-weight", istAusgewaehlt ? "700" : "400");
     text.setAttribute("text-anchor", "middle");
+    text.style.pointerEvents = "none";
     text.textContent = label;
     svg.appendChild(text);
   });
