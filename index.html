@@ -142,6 +142,13 @@
     font-size: 13px;
   }
 
+  .legende-balken {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin: 8px 0 4px;
+  }
+
   .system-liste {
     display: flex;
     flex-direction: column;
@@ -233,11 +240,18 @@
         <p class="zahl" id="wochenPnl">–</p>
       </div>
     </div>
-    <h2>Je Handelsvariante (offene Positionen)</h2>
+
+    <h2>Heutige Ergebnisse je Handelsvariante</h2>
     <div class="kreisdiagramm-zeile" id="kreisdiagrammZeile">
       <svg id="kreisdiagramm" viewBox="0 0 120 120" width="120" height="120"></svg>
       <div class="legende" id="legende"></div>
     </div>
+
+    <h2 style="margin-top:24px;">Wochenverlauf je Handelsvariante</h2>
+    <svg id="balkendiagramm" viewBox="0 0 600 230" width="100%" height="200"></svg>
+    <div class="legende legende-balken" id="legendeBalken"></div>
+
+    <h2 style="margin-top:24px;">Offene Positionen je Handelsvariante</h2>
     <div class="system-liste" id="systemListe"></div>
   </section>
 
@@ -351,10 +365,13 @@ function zeigeStatus(daten) {
   document.getElementById("tradesLeer").style.display =
     gesamtTrades === 0 ? "block" : "none";
 
-  zeichneKreisdiagramm(kreisdiagrammDaten);
+  const verlauf = daten.taegliche_ergebnisse_je_system || [];
+  const heuteEintrag = verlauf[verlauf.length - 1];
+  zeichneKreisdiagramm(heuteEintrag);
+  zeichneBalkendiagramm(verlauf);
 }
 
-// ── Kreisdiagramm (reines SVG, keine Bibliothek) ─────────────────────
+// ── Kreisdiagramm: heutige Ergebnisse je System (reines SVG) ─────────
 const SYSTEM_FARBEN = {
   CopyTrading: "#d4a24e",
   CopyTradingEnhanced: "#5aa9bb",
@@ -363,19 +380,22 @@ const SYSTEM_FARBEN = {
   Unbekannt: "#5a6270",
 };
 
-function zeichneKreisdiagramm(eintraege) {
+function zeichneKreisdiagramm(heuteEintrag) {
   const svg = document.getElementById("kreisdiagramm");
   const legende = document.getElementById("legende");
-  const zeile = document.getElementById("kreisdiagrammZeile");
   svg.innerHTML = "";
   legende.innerHTML = "";
 
-  const gesamt = eintraege.reduce((s, e) => s + e.anzahl, 0);
-  if (gesamt === 0) {
-    zeile.querySelector(".kreisdiagramm-leer")?.remove();
+  const systeme = Object.keys(SYSTEM_FARBEN).filter(s => s !== "Unbekannt");
+  const werte = heuteEintrag
+    ? systeme.map(system => ({ system, wert: heuteEintrag[system] || 0 }))
+    : systeme.map(system => ({ system, wert: 0 }));
+
+  const gesamtAbs = werte.reduce((s, e) => s + Math.abs(e.wert), 0);
+  if (gesamtAbs === 0) {
     const hinweis = document.createElement("p");
     hinweis.className = "kreisdiagramm-leer";
-    hinweis.textContent = "Keine offenen Positionen — Diagramm erscheint, sobald welche offen sind.";
+    hinweis.textContent = "Noch keine abgeschlossenen Trades heute.";
     legende.appendChild(hinweis);
     return;
   }
@@ -384,16 +404,18 @@ function zeichneKreisdiagramm(eintraege) {
   const umfang = 2 * Math.PI * radius;
   let bisherigerAnteil = 0;
 
-  for (const { system, anzahl } of eintraege) {
-    const anteil = anzahl / gesamt;
+  for (const { system, wert } of werte) {
+    if (wert === 0) continue;
+    const anteil = Math.abs(wert) / gesamtAbs;
     const segmentLaenge = anteil * umfang;
     const kreis = document.createElementNS("http://www.w3.org/2000/svg", "circle");
     kreis.setAttribute("cx", mitte);
     kreis.setAttribute("cy", mitte);
     kreis.setAttribute("r", radius);
     kreis.setAttribute("fill", "none");
-    kreis.setAttribute("stroke", SYSTEM_FARBEN[system] || SYSTEM_FARBEN.Unbekannt);
+    kreis.setAttribute("stroke", SYSTEM_FARBEN[system]);
     kreis.setAttribute("stroke-width", strichbreite);
+    kreis.setAttribute("stroke-opacity", wert >= 0 ? "1" : "0.45");
     kreis.setAttribute("stroke-dasharray", `${segmentLaenge} ${umfang - segmentLaenge}`);
     kreis.setAttribute("stroke-dashoffset", -bisherigerAnteil * umfang);
     kreis.setAttribute("transform", `rotate(-90 ${mitte} ${mitte})`);
@@ -403,12 +425,84 @@ function zeichneKreisdiagramm(eintraege) {
     const eintrag = document.createElement("div");
     eintrag.className = "legende-eintrag";
     eintrag.innerHTML = `
-      <span class="legende-punkt" style="background:${SYSTEM_FARBEN[system] || SYSTEM_FARBEN.Unbekannt}"></span>
+      <span class="legende-punkt" style="background:${SYSTEM_FARBEN[system]}"></span>
       <span>${system}</span>
-      <span class="anzahl">${anzahl}</span>
+      <span class="${wert >= 0 ? "pos" : "neg"}">${formatEUR(wert)}</span>
     `;
     legende.appendChild(eintrag);
   }
+}
+
+// ── Balkendiagramm: Wochenverlauf je System (reines SVG) ─────────────
+function zeichneBalkendiagramm(verlauf) {
+  const svg = document.getElementById("balkendiagramm");
+  const legende = document.getElementById("legendeBalken");
+  svg.innerHTML = "";
+  legende.innerHTML = "";
+
+  const systeme = Object.keys(SYSTEM_FARBEN).filter(s => s !== "Unbekannt");
+  for (const system of systeme) {
+    const eintrag = document.createElement("div");
+    eintrag.className = "legende-eintrag";
+    eintrag.innerHTML = `
+      <span class="legende-punkt" style="background:${SYSTEM_FARBEN[system]}"></span>
+      <span>${system}</span>
+    `;
+    legende.appendChild(eintrag);
+  }
+
+  if (!verlauf.length) return;
+
+  const breite = 600, hoehe = 230, nullLinieY = 115;
+  const maxAbs = Math.max(
+    1, ...verlauf.flatMap(tag => systeme.map(s => Math.abs(tag[s] || 0)))
+  );
+  const halbeHoehe = 95; // Platz nach oben/unten ab der Null-Linie
+  const tagBreite = breite / verlauf.length;
+  const balkenBreite = (tagBreite - 12) / systeme.length;
+
+  // Null-Linie
+  const nulllinie = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  nulllinie.setAttribute("x1", 0);
+  nulllinie.setAttribute("x2", breite);
+  nulllinie.setAttribute("y1", nullLinieY);
+  nulllinie.setAttribute("y2", nullLinieY);
+  nulllinie.setAttribute("stroke", "#262f3d");
+  svg.appendChild(nulllinie);
+
+  verlauf.forEach((tag, i) => {
+    const gruppeX = i * tagBreite + 6;
+
+    systeme.forEach((system, j) => {
+      const wert = tag[system] || 0;
+      const balkenHoehe = (Math.abs(wert) / maxAbs) * halbeHoehe;
+      const x = gruppeX + j * balkenBreite;
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.setAttribute("x", x);
+      rect.setAttribute("width", Math.max(balkenBreite - 2, 1));
+      rect.setAttribute("fill", SYSTEM_FARBEN[system]);
+      if (wert >= 0) {
+        rect.setAttribute("y", nullLinieY - balkenHoehe);
+        rect.setAttribute("height", balkenHoehe);
+      } else {
+        rect.setAttribute("y", nullLinieY);
+        rect.setAttribute("height", balkenHoehe);
+      }
+      svg.appendChild(rect);
+    });
+
+    // Tageslabel (Wochentag, kurz)
+    const datum = new Date(tag.datum + "T00:00:00");
+    const label = datum.toLocaleDateString("de-CH", { weekday: "short" });
+    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
+    text.setAttribute("x", gruppeX + (tagBreite - 12) / 2);
+    text.setAttribute("y", hoehe - 6);
+    text.setAttribute("fill", "#8b93a3");
+    text.setAttribute("font-size", "12");
+    text.setAttribute("text-anchor", "middle");
+    text.textContent = label;
+    svg.appendChild(text);
+  });
 }
 
 // ── Register-Umschaltung ─────────────────────────────────────────────
