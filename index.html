@@ -244,7 +244,11 @@
     <h2 id="kreisdiagrammTitel">Heutige Ergebnisse je Handelsvariante</h2>
     <div class="kreisdiagramm-zeile" id="kreisdiagrammZeile">
       <svg id="kreisdiagramm" viewBox="0 0 120 120" width="120" height="120"></svg>
-      <div class="legende" id="legende"></div>
+      <div>
+        <p class="label" style="margin:0 0 2px;">Tagessumme</p>
+        <p class="zahl" id="tagessumme" style="font-size:19px; margin:0 0 12px;">–</p>
+        <div class="legende" id="legende"></div>
+      </div>
     </div>
 
     <h2 style="margin-top:24px;">Wochenverlauf je Handelsvariante</h2>
@@ -389,6 +393,11 @@ function aktualisiereDiagramme() {
       ? "Heutige Ergebnisse je Handelsvariante"
       : `Ergebnisse ${datumLesbar} je Handelsvariante`;
   }
+
+  const systemNamen = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
+  const tagessumme = eintrag ? systemNamen.reduce((s, sys) => s + (eintrag[sys] || 0), 0) : 0;
+  setZahl(document.getElementById("tagessumme"), tagessumme, true);
+
   zeichneKreisdiagramm(eintrag);
   zeichneBalkendiagramm(wochenVerlauf);
 }
@@ -472,12 +481,23 @@ function zeichneBalkendiagramm(verlauf) {
     `;
     legende.appendChild(eintrag);
   }
+  const linienLegende = document.createElement("div");
+  linienLegende.className = "legende-eintrag";
+  linienLegende.innerHTML = `
+    <span class="legende-punkt" style="background:#d4a24e"></span>
+    <span>Tagessumme (Linie)</span>
+  `;
+  legende.appendChild(linienLegende);
 
   if (!verlauf.length) return;
 
+  const tagesSummen = verlauf.map(tag => systeme.reduce((s, sys) => s + (tag[sys] || 0), 0));
+
   const breite = 600, hoehe = 230, nullLinieY = 115;
   const maxAbs = Math.max(
-    1, ...verlauf.flatMap(tag => systeme.map(s => Math.abs(tag[s] || 0)))
+    1,
+    ...verlauf.flatMap(tag => systeme.map(s => Math.abs(tag[s] || 0))),
+    ...tagesSummen.map(Math.abs)
   );
   const halbeHoehe = 95; // Platz nach oben/unten ab der Null-Linie
   const tagBreite = breite / verlauf.length;
@@ -542,6 +562,33 @@ function zeichneBalkendiagramm(verlauf) {
     text.style.pointerEvents = "none";
     text.textContent = label;
     svg.appendChild(text);
+  });
+
+  // Verlaufslinie der Tagessummen (über allen Systemen, alle Balken)
+  const punkte = verlauf.map((tag, i) => {
+    const mitteX = i * tagBreite + tagBreite / 2;
+    const y = nullLinieY - (tagesSummen[i] / maxAbs) * halbeHoehe;
+    return { x: mitteX, y };
+  });
+
+  const linie = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+  linie.setAttribute("points", punkte.map(p => `${p.x},${p.y}`).join(" "));
+  linie.setAttribute("fill", "none");
+  linie.setAttribute("stroke", "#d4a24e");
+  linie.setAttribute("stroke-width", "2.5");
+  linie.setAttribute("stroke-linejoin", "round");
+  linie.setAttribute("stroke-linecap", "round");
+  linie.style.pointerEvents = "none";
+  svg.appendChild(linie);
+
+  punkte.forEach(p => {
+    const punkt = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    punkt.setAttribute("cx", p.x);
+    punkt.setAttribute("cy", p.y);
+    punkt.setAttribute("r", "3.5");
+    punkt.setAttribute("fill", "#d4a24e");
+    punkt.style.pointerEvents = "none";
+    svg.appendChild(punkt);
   });
 }
 
