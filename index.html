@@ -252,7 +252,7 @@
     </div>
 
     <h2 style="margin-top:24px;">Wochenverlauf je Handelsvariante</h2>
-    <svg id="balkendiagramm" viewBox="0 0 600 230" width="100%" height="200"></svg>
+    <svg id="balkendiagramm" viewBox="0 0 660 230" width="100%" height="200"></svg>
     <div class="legende legende-balken" id="legendeBalken"></div>
     <p class="kreisdiagramm-leer" style="margin-top:2px;">Auf einen Tag klicken, um ihn oben im Kreisdiagramm anzuzeigen.</p>
 
@@ -485,44 +485,66 @@ function zeichneBalkendiagramm(verlauf) {
   linienLegende.className = "legende-eintrag";
   linienLegende.innerHTML = `
     <span class="legende-punkt" style="background:#d4a24e"></span>
-    <span>Tagessumme (Linie)</span>
+    <span>Kumuliert seit ${verlauf.length ? new Date(verlauf[0].datum + "T00:00:00").toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit" }) : ""} (Linie)</span>
   `;
   legende.appendChild(linienLegende);
 
   if (!verlauf.length) return;
 
   const tagesSummen = verlauf.map(tag => systeme.reduce((s, sys) => s + (tag[sys] || 0), 0));
+  let laufendeSumme = 0;
+  const kumuliert = tagesSummen.map(t => (laufendeSumme += t));
 
-  const breite = 600, hoehe = 230, nullLinieY = 115;
-  const maxAbs = Math.max(
-    1,
-    ...verlauf.flatMap(tag => systeme.map(s => Math.abs(tag[s] || 0))),
-    ...tagesSummen.map(Math.abs)
+  // Primärachse (links, grau) = einzelne Tagesbalken je System
+  // Sekundärachse (rechts, amber) = kumulierte Linie — bewusst getrennt
+  // skaliert, da die kumulierte Summe über eine Woche typischerweise ein
+  // Vielfaches eines einzelnen Tageswerts ist.
+  const primaerMax = Math.max(
+    1, ...verlauf.flatMap(tag => systeme.map(s => Math.abs(tag[s] || 0)))
   );
-  const halbeHoehe = 95; // Platz nach oben/unten ab der Null-Linie
-  const tagBreite = breite / verlauf.length;
+  const sekundaerMax = Math.max(1, ...kumuliert.map(Math.abs));
+
+  const hoehe = 230, nullLinieY = 115, halbeHoehe = 88;
+  const plotLinks = 46, plotRechts = 614, plotBreite = plotRechts - plotLinks;
+  const tagBreite = plotBreite / verlauf.length;
   const balkenBreite = (tagBreite - 12) / systeme.length;
 
-  // Null-Linie
-  const nulllinie = document.createElementNS("http://www.w3.org/2000/svg", "line");
-  nulllinie.setAttribute("x1", 0);
-  nulllinie.setAttribute("x2", breite);
-  nulllinie.setAttribute("y1", nullLinieY);
-  nulllinie.setAttribute("y2", nullLinieY);
-  nulllinie.setAttribute("stroke", "#262f3d");
-  svg.appendChild(nulllinie);
+  const svgNS = "http://www.w3.org/2000/svg";
+  const el = (tag, attrs) => {
+    const e = document.createElementNS(svgNS, tag);
+    for (const [k, v] of Object.entries(attrs)) e.setAttribute(k, v);
+    return e;
+  };
+
+  // Null-Linie (gemeinsamer Bezugspunkt beider Achsen)
+  svg.appendChild(el("line", {
+    x1: plotLinks, x2: plotRechts, y1: nullLinieY, y2: nullLinieY, stroke: "#262f3d"
+  }));
+
+  // Achsenbeschriftung Primär (links, grau) und Sekundär (rechts, amber)
+  const beschriftung = (text, x, y, anker, farbe) => {
+    const t = el("text", {
+      x, y, fill: farbe, "font-size": "10.5", "text-anchor": anker,
+    });
+    t.textContent = text;
+    svg.appendChild(t);
+  };
+  beschriftung(`+${formatZahlCH(primaerMax, 0)}`, plotLinks - 6, nullLinieY - halbeHoehe + 3, "end", "#8b93a3");
+  beschriftung("0", plotLinks - 6, nullLinieY + 4, "end", "#8b93a3");
+  beschriftung(`−${formatZahlCH(primaerMax, 0)}`, plotLinks - 6, nullLinieY + halbeHoehe + 3, "end", "#8b93a3");
+
+  beschriftung(`+${formatZahlCH(sekundaerMax, 0)}`, plotRechts + 6, nullLinieY - halbeHoehe + 3, "start", "#d4a24e");
+  beschriftung(`−${formatZahlCH(sekundaerMax, 0)}`, plotRechts + 6, nullLinieY + halbeHoehe + 3, "start", "#d4a24e");
 
   verlauf.forEach((tag, i) => {
-    const gruppeX = i * tagBreite + 6;
+    const gruppeX = plotLinks + i * tagBreite + 6;
     const istAusgewaehlt = tag.datum === ausgewaehltesDatum;
 
     // Klickbarer Hintergrundbereich für die ganze Tagesgruppe
-    const klickflaeche = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    klickflaeche.setAttribute("x", i * tagBreite);
-    klickflaeche.setAttribute("y", 0);
-    klickflaeche.setAttribute("width", tagBreite);
-    klickflaeche.setAttribute("height", hoehe);
-    klickflaeche.setAttribute("fill", istAusgewaehlt ? "#1c2431" : "transparent");
+    const klickflaeche = el("rect", {
+      x: plotLinks + i * tagBreite, y: 0, width: tagBreite, height: hoehe,
+      fill: istAusgewaehlt ? "#1c2431" : "transparent",
+    });
     klickflaeche.style.cursor = "pointer";
     klickflaeche.addEventListener("click", () => {
       ausgewaehltesDatum = tag.datum;
@@ -532,61 +554,46 @@ function zeichneBalkendiagramm(verlauf) {
 
     systeme.forEach((system, j) => {
       const wert = tag[system] || 0;
-      const balkenHoehe = (Math.abs(wert) / maxAbs) * halbeHoehe;
+      const balkenHoehe = (Math.abs(wert) / primaerMax) * halbeHoehe;
       const x = gruppeX + j * balkenBreite;
-      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-      rect.setAttribute("x", x);
-      rect.setAttribute("width", Math.max(balkenBreite - 2, 1));
-      rect.setAttribute("fill", SYSTEM_FARBEN[system]);
+      const rect = el("rect", {
+        x, width: Math.max(balkenBreite - 2, 1), fill: SYSTEM_FARBEN[system],
+        y: wert >= 0 ? nullLinieY - balkenHoehe : nullLinieY,
+        height: balkenHoehe,
+      });
       rect.style.pointerEvents = "none";
-      if (wert >= 0) {
-        rect.setAttribute("y", nullLinieY - balkenHoehe);
-        rect.setAttribute("height", balkenHoehe);
-      } else {
-        rect.setAttribute("y", nullLinieY);
-        rect.setAttribute("height", balkenHoehe);
-      }
       svg.appendChild(rect);
     });
 
     // Tageslabel (Wochentag, kurz)
     const datum = new Date(tag.datum + "T00:00:00");
     const label = datum.toLocaleDateString("de-CH", { weekday: "short" });
-    const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
-    text.setAttribute("x", gruppeX + (tagBreite - 12) / 2);
-    text.setAttribute("y", hoehe - 6);
-    text.setAttribute("fill", istAusgewaehlt ? "#e7e6e2" : "#8b93a3");
-    text.setAttribute("font-size", "12");
-    text.setAttribute("font-weight", istAusgewaehlt ? "700" : "400");
-    text.setAttribute("text-anchor", "middle");
+    const text = el("text", {
+      x: gruppeX + (tagBreite - 12) / 2, y: hoehe - 6,
+      fill: istAusgewaehlt ? "#e7e6e2" : "#8b93a3", "font-size": "12",
+      "font-weight": istAusgewaehlt ? "700" : "400", "text-anchor": "middle",
+    });
     text.style.pointerEvents = "none";
     text.textContent = label;
     svg.appendChild(text);
   });
 
-  // Verlaufslinie der Tagessummen (über allen Systemen, alle Balken)
-  const punkte = verlauf.map((tag, i) => {
-    const mitteX = i * tagBreite + tagBreite / 2;
-    const y = nullLinieY - (tagesSummen[i] / maxAbs) * halbeHoehe;
-    return { x: mitteX, y };
-  });
+  // Kumulierte Verlaufslinie (Sekundärachse)
+  const punkte = verlauf.map((tag, i) => ({
+    x: plotLinks + i * tagBreite + tagBreite / 2,
+    y: nullLinieY - (kumuliert[i] / sekundaerMax) * halbeHoehe,
+  }));
 
-  const linie = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-  linie.setAttribute("points", punkte.map(p => `${p.x},${p.y}`).join(" "));
-  linie.setAttribute("fill", "none");
-  linie.setAttribute("stroke", "#d4a24e");
-  linie.setAttribute("stroke-width", "2.5");
-  linie.setAttribute("stroke-linejoin", "round");
-  linie.setAttribute("stroke-linecap", "round");
+  const linie = el("polyline", {
+    points: punkte.map(p => `${p.x},${p.y}`).join(" "),
+    fill: "none", stroke: "#d4a24e", "stroke-width": "2.5",
+    "stroke-linejoin": "round", "stroke-linecap": "round",
+  });
   linie.style.pointerEvents = "none";
   svg.appendChild(linie);
 
   punkte.forEach(p => {
-    const punkt = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    punkt.setAttribute("cx", p.x);
-    punkt.setAttribute("cy", p.y);
-    punkt.setAttribute("r", "3.5");
-    punkt.setAttribute("fill", "#d4a24e");
+    const punkt = el("circle", { cx: p.x, cy: p.y, r: "3.5", fill: "#d4a24e" });
     punkt.style.pointerEvents = "none";
     svg.appendChild(punkt);
   });
