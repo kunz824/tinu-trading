@@ -722,8 +722,23 @@ function zeigeStatus(daten) {
   document.getElementById("tradesLeer").style.display =
     gesamtTrades === 0 ? "block" : "none";
 
-  wochenVerlauf = daten.taegliche_ergebnisse_je_system || [];
-  alleTradesDerWoche = daten.trades_der_woche || [];
+  // Sicherheitsfilter (13.09.2026 ergänzt): unabhängig davon, was der
+  // Koordinator liefert, verwirft die App selbst alles ausserhalb des
+  // rollierenden 7-Tage-Fensters (heute inklusive) — sowohl Tagessummen
+  // als auch Einzeltrades. Der Koordinator berechnet dieses Fenster zwar
+  // bereits selbst frisch bei jedem Durchlauf, aber diese zusätzliche
+  // App-seitige Filterung stellt sicher, dass auch bei einer evtl.
+  // veralteten/zwischengespeicherten Antwort nie älter als 7 Tage
+  // angezeigt wird.
+  const aeltesterGueltigerTag = new Date();
+  aeltesterGueltigerTag.setDate(aeltesterGueltigerTag.getDate() - 6);
+  const aeltesterGueltigerTagISO = aeltesterGueltigerTag.toISOString().slice(0, 10);
+
+  wochenVerlauf = (daten.taegliche_ergebnisse_je_system || [])
+    .filter(t => t.datum >= aeltesterGueltigerTagISO);
+  alleTradesDerWoche = (daten.trades_der_woche || [])
+    .filter(t => t.datum >= aeltesterGueltigerTagISO);
+
   if (!wochenVerlauf.some(t => t.datum === ausgewaehltesDatum)) {
     ausgewaehltesDatum = wochenVerlauf.length
       ? wochenVerlauf[wochenVerlauf.length - 1].datum
