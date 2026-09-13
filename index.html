@@ -43,20 +43,26 @@
     justify-content: space-around;
     align-items: flex-end;
     gap: 4px;
-    background: var(--bg-panel);
-    border-top: 1px solid var(--border);
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     z-index: 10;
     --tab-x: 60px;
-    -webkit-mask-image: radial-gradient(circle 30px at var(--tab-x) 0px, transparent 97%, black 100%);
-    mask-image: radial-gradient(circle 30px at var(--tab-x) 0px, transparent 97%, black 100%);
+  }
+  #tabBar::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: var(--bg-panel);
+    border-top: 1px solid var(--border);
+    z-index: -1;
+    -webkit-mask-image: radial-gradient(circle 38px at var(--tab-x) 0px, transparent 97%, black 100%);
+    mask-image: radial-gradient(circle 38px at var(--tab-x) 0px, transparent 97%, black 100%);
   }
   .tab-welle {
     position: absolute;
-    left: calc(var(--tab-x) - 30px);
-    top: -30px;
-    width: 60px;
-    height: 60px;
+    left: calc(var(--tab-x) - 34px);
+    top: -34px;
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
     background: var(--accent);
     transition: left 0.25s ease;
