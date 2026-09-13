@@ -284,7 +284,23 @@
     <h2 style="margin-top:24px;">Wochenverlauf je Handelsvariante</h2>
     <svg id="balkendiagramm" viewBox="0 0 660 230" width="100%" height="200"></svg>
     <div class="legende legende-balken" id="legendeBalken"></div>
-    <p class="kreisdiagramm-leer" style="margin-top:2px;">Auf einen Tag klicken, um ihn oben im Kreisdiagramm anzuzeigen.</p>
+    <p class="kreisdiagramm-leer" style="margin-top:2px;">Auf einen Tag klicken, um ihn oben im Kreisdiagramm und unten in der Handelshistorie anzuzeigen.</p>
+
+    <h2 id="handelshistorieTitel" style="margin-top:20px;">Handelshistorie</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Zeit</th>
+          <th>System</th>
+          <th>Symbol</th>
+          <th>Richtung</th>
+          <th class="zahl-spalte">Lot</th>
+          <th class="zahl-spalte">Ergebnis</th>
+        </tr>
+      </thead>
+      <tbody id="handelshistorieTabelle"></tbody>
+    </table>
+    <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
 
     <h2 style="margin-top:24px;">Offene Positionen je Handelsvariante</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Schieber pausiert nur NEUE Trades — offene Positionen laufen normal weiter.</p>
@@ -500,6 +516,7 @@ function zeigeStatus(daten) {
     gesamtTrades === 0 ? "block" : "none";
 
   wochenVerlauf = daten.taegliche_ergebnisse_je_system || [];
+  alleTradesDerWoche = daten.trades_der_woche || [];
   if (!wochenVerlauf.some(t => t.datum === ausgewaehltesDatum)) {
     ausgewaehltesDatum = wochenVerlauf.length
       ? wochenVerlauf[wochenVerlauf.length - 1].datum
@@ -509,6 +526,7 @@ function zeigeStatus(daten) {
 }
 
 let wochenVerlauf = [];
+let alleTradesDerWoche = [];
 let ausgewaehltesDatum = null;
 
 function aktualisiereDiagramme() {
@@ -529,6 +547,44 @@ function aktualisiereDiagramme() {
 
   zeichneKreisdiagramm(eintrag);
   zeichneBalkendiagramm(wochenVerlauf);
+  zeigeHandelshistorie();
+}
+
+function zeigeHandelshistorie() {
+  const titel = document.getElementById("handelshistorieTitel");
+  const tabelle = document.getElementById("handelshistorieTabelle");
+  const leer = document.getElementById("handelshistorieLeer");
+  tabelle.innerHTML = "";
+
+  if (!ausgewaehltesDatum) {
+    titel.textContent = "Handelshistorie";
+    leer.style.display = "block";
+    return;
+  }
+
+  const heute = new Date().toISOString().slice(0, 10);
+  const datumLesbar = new Date(ausgewaehltesDatum + "T00:00:00")
+    .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
+  titel.textContent = ausgewaehltesDatum === heute
+    ? "Handelshistorie — Heute"
+    : `Handelshistorie — ${datumLesbar}`;
+
+  const tagesTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
+  leer.style.display = tagesTrades.length === 0 ? "block" : "none";
+
+  for (const t of tagesTrades) {
+    const richtungKlasse = t.richtung === "BUY" ? "richtung-buy" : "richtung-sell";
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${t.zeit}</td>
+      <td>${t.system}</td>
+      <td>${t.symbol}</td>
+      <td class="${richtungKlasse}">${t.richtung}</td>
+      <td class="zahl-spalte">${t.lot.toFixed(2)}</td>
+      <td class="zahl-spalte ${t.gewinn >= 0 ? "pos" : "neg"}">${formatEUR(t.gewinn)}</td>
+    `;
+    tabelle.appendChild(tr);
+  }
 }
 
 // ── Kreisdiagramm: Ergebnisse eines Tages je System (reines SVG) ─────
