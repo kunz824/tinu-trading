@@ -324,7 +324,10 @@
       <svg id="kreisdiagramm" viewBox="0 0 120 120" width="120" height="120"></svg>
       <div>
         <p class="label" style="margin:0 0 2px;" id="ergebnisLabel">Tagessumme</p>
-        <p class="zahl" id="tagessumme" style="font-size:19px; margin:0 0 12px;">–</p>
+        <p style="margin:0 0 12px; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
+          <span class="zahl" id="tagessumme" style="font-size:19px;">–</span>
+          <span id="ergebnisMinMax" style="color:var(--text-dim); font-size:12.5px;"></span>
+        </p>
         <div class="legende" id="legende"></div>
       </div>
     </div>
@@ -840,6 +843,18 @@ function zeichneKreisdiagramm() {
   const verlustSumme = -relevanteTrades.filter(t => t.gewinn <= 0).reduce((s, t) => s + t.gewinn, 0);
   const effektiv = gewinnSumme - verlustSumme;
   setZahl(wertEl, effektiv, true);
+
+  const minMaxEl = document.getElementById("ergebnisMinMax");
+  if (relevanteTrades.length > 0) {
+    const werte = relevanteTrades.map(t => t.gewinn);
+    const tiefstes = Math.min(...werte);
+    const hoechstes = Math.max(...werte);
+    minMaxEl.innerHTML =
+      `Tiefstes: <span class="${tiefstes >= 0 ? "pos" : "neg"}">${formatEUR(tiefstes)}</span> · ` +
+      `Höchstes: <span class="${hoechstes >= 0 ? "pos" : "neg"}">${formatEUR(hoechstes)}</span>`;
+  } else {
+    minMaxEl.textContent = "";
+  }
 
   const gesamtAbs = gewinnSumme + verlustSumme;
   if (gesamtAbs === 0) {
