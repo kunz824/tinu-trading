@@ -149,6 +149,27 @@
     margin: 8px 0 4px;
   }
 
+  .system-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 14px;
+  }
+  .system-chip {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-size: 12.5px;
+    font-family: inherit;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+  }
+  .system-chip.aktiv {
+    color: var(--bg);
+    border-color: transparent;
+  }
+
   .system-liste {
     display: flex;
     flex-direction: column;
@@ -249,8 +270,8 @@
   <h1>Tinu-Trading</h1>
   <p class="stand" id="standZeit">Lädt…</p>
   <nav>
-    <button class="aktiv" data-register="kontostand">Kontostand</button>
-    <button data-register="trades">Aktuelle Trades</button>
+    <button class="aktiv" data-register="kontostand">📊 Dashboard</button>
+    <button data-register="trades">📈 Handelsplattform</button>
   </nav>
 </header>
 
@@ -281,6 +302,17 @@
       </div>
     </div>
 
+    <h2 id="gewinnrateTitel" style="margin-top:24px;">Gewinnrate — Woche gesamt</h2>
+    <div class="system-filter" id="systemFilter"></div>
+    <div class="kreisdiagramm-zeile" id="gewinnrateZeile">
+      <svg id="gewinnrateDonut" viewBox="0 0 120 120" width="120" height="120"></svg>
+      <div>
+        <p class="label" style="margin:0 0 2px;">Gewinnrate</p>
+        <p class="zahl" id="gewinnrateWert" style="font-size:24px; margin:0 0 12px;">–</p>
+        <div class="legende" id="gewinnrateLegende"></div>
+      </div>
+    </div>
+
     <h2 style="margin-top:24px;">Wochenverlauf je Handelsvariante</h2>
     <svg id="balkendiagramm" viewBox="0 0 660 230" width="100%" height="200"></svg>
     <div class="legende legende-balken" id="legendeBalken"></div>
@@ -301,13 +333,14 @@
       <tbody id="handelshistorieTabelle"></tbody>
     </table>
     <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
-
-    <h2 style="margin-top:24px;">Offene Positionen je Handelsvariante</h2>
-    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Schieber pausiert nur NEUE Trades — offene Positionen laufen normal weiter.</p>
-    <div class="system-liste" id="systemListe"></div>
   </section>
 
   <section id="register-trades" class="register">
+    <h2>Offene Positionen je Handelsvariante</h2>
+    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Schieber pausiert nur NEUE Trades — offene Positionen laufen normal weiter.</p>
+    <div class="system-liste" id="systemListe"></div>
+
+    <h2 style="margin-top:24px;">Aktuelle Trades</h2>
     <table>
       <thead>
         <tr>
@@ -548,6 +581,100 @@ function aktualisiereDiagramme() {
   zeichneKreisdiagramm(eintrag);
   zeichneBalkendiagramm(wochenVerlauf);
   zeigeHandelshistorie();
+  zeigeSystemFilter();
+  zeichneGewinnrateDonut();
+}
+
+// ── Gewinnrate-Donut: kumuliert über die Woche, per Klick auf eine
+// Handelsvariante gefiltert (unabhängig vom Tages-Filter oben) ────────
+let ausgewaehltesSystemGewinnrate = null; // null = alle Systeme zusammen
+
+function zeigeSystemFilter() {
+  const filter = document.getElementById("systemFilter");
+  filter.innerHTML = "";
+  const systeme = ["Alle", ...Object.keys(SYSTEM_FARBEN).filter(s => s !== "Unbekannt")];
+  for (const system of systeme) {
+    const chip = document.createElement("button");
+    chip.className = "system-chip" + (
+      (system === "Alle" && !ausgewaehltesSystemGewinnrate) ||
+      system === ausgewaehltesSystemGewinnrate ? " aktiv" : ""
+    );
+    chip.textContent = system;
+    if (chip.classList.contains("aktiv")) {
+      chip.style.background = system === "Alle" ? "var(--accent)" : SYSTEM_FARBEN[system];
+    }
+    chip.addEventListener("click", () => {
+      ausgewaehltesSystemGewinnrate = system === "Alle" ? null : system;
+      zeigeSystemFilter();
+      zeichneGewinnrateDonut();
+    });
+    filter.appendChild(chip);
+  }
+}
+
+function zeichneGewinnrateDonut() {
+  const svg = document.getElementById("gewinnrateDonut");
+  const legende = document.getElementById("gewinnrateLegende");
+  const wertEl = document.getElementById("gewinnrateWert");
+  const titel = document.getElementById("gewinnrateTitel");
+  svg.innerHTML = "";
+  legende.innerHTML = "";
+
+  titel.textContent = ausgewaehltesSystemGewinnrate
+    ? `Gewinnrate — ${ausgewaehltesSystemGewinnrate} (Woche gesamt)`
+    : "Gewinnrate — Woche gesamt";
+
+  const relevanteTrades = ausgewaehltesSystemGewinnrate
+    ? alleTradesDerWoche.filter(t => t.system === ausgewaehltesSystemGewinnrate)
+    : alleTradesDerWoche;
+
+  const gewinne = relevanteTrades.filter(t => t.gewinn > 0).length;
+  const verluste = relevanteTrades.filter(t => t.gewinn <= 0).length;
+  const gesamt = gewinne + verluste;
+
+  if (gesamt === 0) {
+    wertEl.textContent = "–";
+    const hinweis = document.createElement("p");
+    hinweis.className = "kreisdiagramm-leer";
+    hinweis.textContent = "Keine abgeschlossenen Trades diese Woche.";
+    legende.appendChild(hinweis);
+    return;
+  }
+
+  const quote = gewinne / gesamt;
+  wertEl.textContent = `${(quote * 100).toFixed(1)} %`;
+
+  const radius = 50, mitte = 60, strichbreite = 16;
+  const umfang = 2 * Math.PI * radius;
+  const svgNS = "http://www.w3.org/2000/svg";
+
+  const segment = (anteil, versatz, farbe) => {
+    const laenge = anteil * umfang;
+    const kreis = document.createElementNS(svgNS, "circle");
+    kreis.setAttribute("cx", mitte);
+    kreis.setAttribute("cy", mitte);
+    kreis.setAttribute("r", radius);
+    kreis.setAttribute("fill", "none");
+    kreis.setAttribute("stroke", farbe);
+    kreis.setAttribute("stroke-width", strichbreite);
+    kreis.setAttribute("stroke-dasharray", `${laenge} ${umfang - laenge}`);
+    kreis.setAttribute("stroke-dashoffset", -versatz * umfang);
+    kreis.setAttribute("transform", `rotate(-90 ${mitte} ${mitte})`);
+    svg.appendChild(kreis);
+  };
+  segment(quote, 0, "#4caf7d");
+  if (quote < 1) segment(1 - quote, quote, "#e0605a");
+
+  for (const [label, anzahl, farbe] of [["Gewinne", gewinne, "#4caf7d"], ["Verluste", verluste, "#e0605a"]]) {
+    const eintrag = document.createElement("div");
+    eintrag.className = "legende-eintrag";
+    eintrag.innerHTML = `
+      <span class="legende-punkt" style="background:${farbe}"></span>
+      <span>${label}</span>
+      <span class="anzahl">${anzahl}</span>
+    `;
+    legende.appendChild(eintrag);
+  }
 }
 
 function zeigeHandelshistorie() {
