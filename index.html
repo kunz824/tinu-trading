@@ -27,18 +27,24 @@
     -webkit-font-smoothing: antialiased;
   }
   header {
-    padding: 20px 20px 0;
+    padding: 20px 20px 18px;
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 10px;
   }
   h1 {
     font-size: 22px;
     font-weight: 650;
     letter-spacing: -0.01em;
-    margin: 0 0 4px;
+    margin: 0;
   }
   .stand {
     color: var(--text-dim);
-    font-size: 13px;
-    margin: 0 0 18px;
+    font-size: 12px;
+    margin: 0;
+    text-align: right;
+    white-space: nowrap;
   }
   main {
     padding: 20px 20px 100px;
@@ -307,8 +313,15 @@
   .pos { color: var(--pos); }
   .neg { color: var(--neg); }
 
+  .tabelle-karte {
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow-x: auto;
+    background: var(--bg-panel);
+  }
   table {
     width: 100%;
+    min-width: 480px;
     border-collapse: collapse;
     font-size: 13px;
   }
@@ -316,7 +329,7 @@
     text-align: left;
     color: var(--text-dim);
     font-weight: 500;
-    padding: 0 10px 8px;
+    padding: 10px 10px 8px;
     border-bottom: 1px solid var(--border);
   }
   th.zahl-spalte, td.zahl-spalte { text-align: right; }
@@ -432,6 +445,7 @@
     <div class="system-liste" id="systemListe"></div>
 
     <h2 style="margin-top:24px;">Aktuelle Trades</h2>
+    <div class="tabelle-karte">
     <table>
       <thead>
         <tr>
@@ -445,12 +459,14 @@
       </thead>
       <tbody id="tradesTabelle"></tbody>
     </table>
+    </div>
     <p class="leer" id="tradesLeer" style="display:none;">Keine offenen Positionen.</p>
   </section>
 
   <section id="register-ergebnisse" class="register">
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
+    <div class="tabelle-karte">
     <table>
       <thead>
         <tr>
@@ -464,6 +480,7 @@
       </thead>
       <tbody id="handelshistorieTabelle"></tbody>
     </table>
+    </div>
     <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
   </section>
 
