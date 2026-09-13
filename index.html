@@ -149,6 +149,29 @@
     margin: 8px 0 4px;
   }
 
+  .modus-umschalter {
+    display: flex;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 2px;
+    flex-shrink: 0;
+  }
+  .modus-umschalter button {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-family: inherit;
+    font-size: 12px;
+    padding: 5px 12px;
+    border-radius: 16px;
+    cursor: pointer;
+  }
+  .modus-umschalter button.aktiv {
+    background: var(--accent);
+    color: var(--bg);
+  }
+
   .system-filter {
     display: flex;
     flex-wrap: wrap;
@@ -292,17 +315,23 @@
       </div>
     </div>
 
-    <h2 id="kreisdiagrammTitel">Heutige Ergebnisse je Handelsvariante</h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
+      <h2 id="kreisdiagrammTitel" style="margin:0;">Heutige Ergebnisse je Handelsvariante</h2>
+      <div class="modus-umschalter" id="ergebnisModusSchalter"></div>
+    </div>
     <div class="kreisdiagramm-zeile" id="kreisdiagrammZeile">
       <svg id="kreisdiagramm" viewBox="0 0 120 120" width="120" height="120"></svg>
       <div>
-        <p class="label" style="margin:0 0 2px;">Tagessumme</p>
+        <p class="label" style="margin:0 0 2px;" id="ergebnisLabel">Tagessumme</p>
         <p class="zahl" id="tagessumme" style="font-size:19px; margin:0 0 12px;">–</p>
         <div class="legende" id="legende"></div>
       </div>
     </div>
 
-    <h2 id="gewinnrateTitel" style="margin-top:24px;">Gewinnrate — Woche gesamt</h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:24px;">
+      <h2 id="gewinnrateTitel" style="margin:0;">Gewinnrate — Heute</h2>
+      <div class="modus-umschalter" id="gewinnrateModusSchalter"></div>
+    </div>
     <div class="system-filter" id="systemFilter"></div>
     <div class="kreisdiagramm-zeile" id="gewinnrateZeile">
       <svg id="gewinnrateDonut" viewBox="0 0 120 120" width="120" height="120"></svg>
@@ -562,31 +591,67 @@ let wochenVerlauf = [];
 let alleTradesDerWoche = [];
 let ausgewaehltesDatum = null;
 
+let ergebnisModus = "tag"; // "tag" | "woche"
+let gewinnrateModus = "tag"; // "tag" | "woche"
+const SYSTEM_NAMEN = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
+
+function zeigeModusSchalter(containerId, aktuellerModus, beiKlick) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = "";
+  for (const [wert, label] of [["tag", "Tag"], ["woche", "Woche"]]) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.className = wert === aktuellerModus ? "aktiv" : "";
+    btn.addEventListener("click", () => beiKlick(wert));
+    container.appendChild(btn);
+  }
+}
+
 function aktualisiereDiagramme() {
   const eintrag = wochenVerlauf.find(t => t.datum === ausgewaehltesDatum);
   const heute = new Date().toISOString().slice(0, 10);
   const titel = document.getElementById("kreisdiagrammTitel");
-  if (eintrag) {
-    const datumLesbar = new Date(eintrag.datum + "T00:00:00")
-      .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
-    titel.textContent = eintrag.datum === heute
-      ? "Heutige Ergebnisse je Handelsvariante"
-      : `Ergebnisse ${datumLesbar} je Handelsvariante`;
+  const label = document.getElementById("ergebnisLabel");
+
+  zeigeModusSchalter("ergebnisModusSchalter", ergebnisModus, (wert) => {
+    ergebnisModus = wert;
+    aktualisiereDiagramme();
+  });
+
+  let ergebnisEintrag;
+  if (ergebnisModus === "woche") {
+    titel.textContent = "Ergebnisse — Woche gesamt je Handelsvariante";
+    label.textContent = "Wochensumme";
+    ergebnisEintrag = { datum: "woche" };
+    for (const sys of SYSTEM_NAMEN) {
+      ergebnisEintrag[sys] = wochenVerlauf.reduce((s, tag) => s + (tag[sys] || 0), 0);
+    }
+  } else {
+    label.textContent = "Tagessumme";
+    if (eintrag) {
+      const datumLesbar = new Date(eintrag.datum + "T00:00:00")
+        .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
+      titel.textContent = eintrag.datum === heute
+        ? "Heutige Ergebnisse je Handelsvariante"
+        : `Ergebnisse ${datumLesbar} je Handelsvariante`;
+    }
+    ergebnisEintrag = eintrag;
   }
 
-  const systemNamen = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
-  const tagessumme = eintrag ? systemNamen.reduce((s, sys) => s + (eintrag[sys] || 0), 0) : 0;
+  const tagessumme = ergebnisEintrag
+    ? SYSTEM_NAMEN.reduce((s, sys) => s + (ergebnisEintrag[sys] || 0), 0) : 0;
   setZahl(document.getElementById("tagessumme"), tagessumme, true);
 
-  zeichneKreisdiagramm(eintrag);
+  zeichneKreisdiagramm(ergebnisEintrag);
   zeichneBalkendiagramm(wochenVerlauf);
   zeigeHandelshistorie();
   zeigeSystemFilter();
   zeichneGewinnrateDonut();
 }
 
-// ── Gewinnrate-Donut: kumuliert über die Woche, per Klick auf eine
-// Handelsvariante gefiltert (unabhängig vom Tages-Filter oben) ────────
+// ── Gewinnrate-Donut: standardmässig der ausgewählte Tag (wie der
+// Ergebnis-Donut, folgt also demselben Balkenklick), per Umschalter auch
+// als Wochensumme; zusätzlich per Klick auf eine Handelsvariante gefiltert
 let ausgewaehltesSystemGewinnrate = null; // null = alle Systeme zusammen
 
 function zeigeSystemFilter() {
@@ -620,13 +685,28 @@ function zeichneGewinnrateDonut() {
   svg.innerHTML = "";
   legende.innerHTML = "";
 
+  zeigeModusSchalter("gewinnrateModusSchalter", gewinnrateModus, (wert) => {
+    gewinnrateModus = wert;
+    zeichneGewinnrateDonut();
+  });
+
+  const heute = new Date().toISOString().slice(0, 10);
+  let zeitraumTrades = alleTradesDerWoche;
+  let zeitraumLabel = "Woche gesamt";
+  if (gewinnrateModus === "tag" && ausgewaehltesDatum) {
+    zeitraumTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
+    const datumLesbar = new Date(ausgewaehltesDatum + "T00:00:00")
+      .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
+    zeitraumLabel = ausgewaehltesDatum === heute ? "Heute" : datumLesbar;
+  }
+
   titel.textContent = ausgewaehltesSystemGewinnrate
-    ? `Gewinnrate — ${ausgewaehltesSystemGewinnrate} (Woche gesamt)`
-    : "Gewinnrate — Woche gesamt";
+    ? `Gewinnrate — ${ausgewaehltesSystemGewinnrate} (${zeitraumLabel})`
+    : `Gewinnrate — ${zeitraumLabel}`;
 
   const relevanteTrades = ausgewaehltesSystemGewinnrate
-    ? alleTradesDerWoche.filter(t => t.system === ausgewaehltesSystemGewinnrate)
-    : alleTradesDerWoche;
+    ? zeitraumTrades.filter(t => t.system === ausgewaehltesSystemGewinnrate)
+    : zeitraumTrades;
 
   const gewinne = relevanteTrades.filter(t => t.gewinn > 0).length;
   const verluste = relevanteTrades.filter(t => t.gewinn <= 0).length;
@@ -636,7 +716,7 @@ function zeichneGewinnrateDonut() {
     wertEl.textContent = "–";
     const hinweis = document.createElement("p");
     hinweis.className = "kreisdiagramm-leer";
-    hinweis.textContent = "Keine abgeschlossenen Trades diese Woche.";
+    hinweis.textContent = "Keine abgeschlossenen Trades in diesem Zeitraum.";
     legende.appendChild(hinweis);
     return;
   }
