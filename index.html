@@ -658,12 +658,12 @@ function zeichneBalkendiagramm(verlauf) {
     t.textContent = text;
     svg.appendChild(t);
   };
-  beschriftung(`+${formatZahlCH(primaerMax, 0)}`, plotLinks - 6, nullLinieY - halbeHoehe + 3, "end", "#8b93a3");
+  beschriftung(`+${formatZahlCH(primaerMax)}`, plotLinks - 6, nullLinieY - halbeHoehe + 3, "end", "#8b93a3");
   beschriftung("0", plotLinks - 6, nullLinieY + 4, "end", "#8b93a3");
-  beschriftung(`−${formatZahlCH(primaerMax, 0)}`, plotLinks - 6, nullLinieY + halbeHoehe + 3, "end", "#8b93a3");
+  beschriftung(`−${formatZahlCH(primaerMax)}`, plotLinks - 6, nullLinieY + halbeHoehe + 3, "end", "#8b93a3");
 
-  beschriftung(`+${formatZahlCH(sekundaerMax, 0)}`, plotRechts + 6, nullLinieY - halbeHoehe + 3, "start", "#d4a24e");
-  beschriftung(`−${formatZahlCH(sekundaerMax, 0)}`, plotRechts + 6, nullLinieY + halbeHoehe + 3, "start", "#d4a24e");
+  beschriftung(`+${formatZahlCH(sekundaerMax)}`, plotRechts + 6, nullLinieY - halbeHoehe + 3, "start", "#d4a24e");
+  beschriftung(`−${formatZahlCH(sekundaerMax)}`, plotRechts + 6, nullLinieY + halbeHoehe + 3, "start", "#d4a24e");
 
   verlauf.forEach((tag, i) => {
     const gruppeX = plotLinks + i * tagBreite + 6;
