@@ -740,10 +740,21 @@ const NACHRICHTEN_ICONS = {
   aktion: "🔧",
 };
 
-const LETZTER_GESEHEN_KEY = "tinuTradingLetzterGesehen";
+const GELESEN_KEY = "tinuTradingGelesen";
+const NACHRICHTEN_ANZEIGE_MAX = 30;
 
-function letzterGesehenerZeitstempel() {
-  return localStorage.getItem(LETZTER_GESEHEN_KEY) || "1970-01-01T00:00:00";
+function gelesenSet() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(GELESEN_KEY) || "[]"));
+  } catch { return new Set(); }
+}
+
+function speichereGelesenSet(set, aktuelleNachrichten) {
+  // Nur Zeitstempel behalten, die auch in der aktuellen Liste vorkommen —
+  // verhindert unbegrenztes Wachstum im localStorage über die Zeit.
+  const gueltig = new Set(aktuelleNachrichten.map(n => n.zeit));
+  const bereinigt = [...set].filter(zeit => gueltig.has(zeit));
+  localStorage.setItem(GELESEN_KEY, JSON.stringify(bereinigt));
 }
 
 function spieleTschingel() {
@@ -768,8 +779,8 @@ function spieleTschingel() {
 }
 
 function aktualisiereBadgeUndTon(nachrichten) {
-  const letzterGesehen = letzterGesehenerZeitstempel();
-  const ungelesen = nachrichten.filter(n => n.zeit > letzterGesehen);
+  const gelesen = gelesenSet();
+  const ungelesen = nachrichten.filter(n => !gelesen.has(n.zeit));
 
   if ("setAppBadge" in navigator) {
     if (ungelesen.length > 0) navigator.setAppBadge(ungelesen.length).catch(() => {});
@@ -791,31 +802,32 @@ function aktualisiereBadgeUndTon(nachrichten) {
 }
 let letzteBekanntUngeleseneAnzahl = -1; // -1 = erster Durchlauf, noch kein Vergleich moeglich
 
-function markiereNachrichtenAlsGesehen(nachrichten) {
-  if (nachrichten.length === 0) return;
-  localStorage.setItem(LETZTER_GESEHEN_KEY, nachrichten[0].zeit); // [0] = neueste (Liste ist absteigend sortiert)
-  if ("clearAppBadge" in navigator) navigator.clearAppBadge().catch(() => {});
-  document.getElementById("nachrichtenBadge").style.display = "none";
-  letzteBekanntUngeleseneAnzahl = 0;
+function markiereEinzelnAlsGelesen(zeit) {
+  const gelesen = gelesenSet();
+  gelesen.add(zeit);
+  speichereGelesenSet(gelesen, letzteNachrichtenDaten);
+  zeigeNachrichten(letzteNachrichtenDaten); // neu rendern: Hervorhebung + Badge aktualisieren
 }
 
 let letzteNachrichtenDaten = [];
 
-function zeigeNachrichten(nachrichten) {
-  letzteNachrichtenDaten = nachrichten;
+function zeigeNachrichten(nachrichtenVoll) {
+  letzteNachrichtenDaten = nachrichtenVoll;
+  const nachrichten = nachrichtenVoll.slice(0, NACHRICHTEN_ANZEIGE_MAX);
   const liste = document.getElementById("nachrichtenListe");
   const leer = document.getElementById("nachrichtenLeer");
   liste.innerHTML = "";
   leer.style.display = nachrichten.length === 0 ? "block" : "none";
 
-  const letzterGesehen = letzterGesehenerZeitstempel();
+  const gelesen = gelesenSet();
 
   for (const n of nachrichten) {
     const zeit = new Date(n.zeit);
     const zeitLesbar = zeit.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit" })
       + " · " + zeit.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
     const div = document.createElement("div");
-    div.className = "nachricht" + (n.zeit > letzterGesehen ? " nachricht-ungelesen" : "");
+    div.className = "nachricht" + (!gelesen.has(n.zeit) ? " nachricht-ungelesen" : "");
+    div.style.cursor = "pointer";
     div.innerHTML = `
       <span class="nachricht-icon">${NACHRICHTEN_ICONS[n.typ] || "•"}</span>
       <div>
@@ -823,15 +835,11 @@ function zeigeNachrichten(nachrichten) {
         <div class="nachricht-zeit">${zeitLesbar}</div>
       </div>
     `;
+    div.addEventListener("click", () => markiereEinzelnAlsGelesen(n.zeit));
     liste.appendChild(div);
   }
 
-  aktualisiereBadgeUndTon(nachrichten);
-
-  // Als gesehen markieren, sobald das Nachrichten-Register aktiv angezeigt wird
-  if (document.getElementById("register-nachrichten").classList.contains("aktiv")) {
-    markiereNachrichtenAlsGesehen(nachrichten);
-  }
+  aktualisiereBadgeUndTon(nachrichtenVoll);
 }
 
 let wochenVerlauf = [];
@@ -1239,9 +1247,6 @@ document.querySelectorAll("nav button").forEach(btn => {
     document.querySelectorAll(".register").forEach(r => r.classList.remove("aktiv"));
     btn.classList.add("aktiv");
     document.getElementById(`register-${btn.dataset.register}`).classList.add("aktiv");
-    if (btn.dataset.register === "nachrichten") {
-      markiereNachrichtenAlsGesehen(letzteNachrichtenDaten);
-    }
   });
 });
 
