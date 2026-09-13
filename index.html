@@ -26,28 +26,8 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
-  header {
-    padding: 20px 20px 18px;
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 10px;
-  }
-  h1 {
-    font-size: 22px;
-    font-weight: 650;
-    letter-spacing: -0.01em;
-    margin: 0;
-  }
-  .stand {
-    color: var(--text-dim);
-    font-size: 12px;
-    margin: 0;
-    text-align: right;
-    white-space: nowrap;
-  }
   main {
-    padding: 20px 20px 100px;
+    padding: 28px 20px 100px;
     max-width: 640px;
     margin: 0 auto;
   }
@@ -67,6 +47,30 @@
     border-top: 1px solid var(--border);
     padding: 8px 8px calc(8px + env(safe-area-inset-bottom));
     z-index: 10;
+    --tab-x: 60px;
+    -webkit-mask-image: radial-gradient(circle 30px at var(--tab-x) 0px, transparent 97%, black 100%);
+    mask-image: radial-gradient(circle 30px at var(--tab-x) 0px, transparent 97%, black 100%);
+  }
+  .tab-welle {
+    position: absolute;
+    left: calc(var(--tab-x) - 30px);
+    top: -30px;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: var(--accent);
+    transition: left 0.25s ease;
+    z-index: 1;
+    pointer-events: none;
+  }
+  .stand-anzeige {
+    position: absolute;
+    top: 3px;
+    right: 10px;
+    font-size: 9px;
+    color: var(--text-dim);
+    white-space: nowrap;
+    z-index: 2;
   }
   .tab-btn {
     background: none;
@@ -80,6 +84,8 @@
     padding: 4px 8px;
     flex: 1;
     max-width: 90px;
+    position: relative;
+    z-index: 2;
   }
   .tab-icon {
     width: 42px;
@@ -125,7 +131,6 @@
     justify-content: center;
     line-height: 1;
   }
-  .nachricht-ungelesen { background: rgba(212, 162, 78, 0.07); border-radius: 8px; margin: 0 -8px; padding: 12px 8px; }
 
   .hero {
     padding: 22px 0 26px;
@@ -337,12 +342,24 @@
     overflow-x: auto;
     background: var(--bg-panel);
   }
+  .tabelle-scroll {
+    max-height: 360px;
+    overflow-y: auto;
+  }
+  .tabelle-scroll thead th {
+    position: sticky;
+    top: 0;
+    background: var(--bg-panel);
+    z-index: 1;
+  }
   table {
     width: 100%;
     min-width: 480px;
     border-collapse: collapse;
     font-size: 13px;
   }
+  .tabelle-nachrichten { min-width: 0; }
+  .tabelle-nachrichten td { white-space: normal; }
   th {
     text-align: left;
     color: var(--text-dim);
@@ -359,24 +376,13 @@
   td.richtung-buy { color: var(--pos); }
   td.richtung-sell { color: var(--neg); }
 
-  .nachricht {
-    display: flex;
-    gap: 10px;
-    padding: 12px 4px;
-    border-bottom: 1px solid var(--border);
-  }
-  .nachricht:last-child { border-bottom: none; }
-  .nachricht-icon {
-    font-size: 17px;
-    flex-shrink: 0;
-    width: 22px;
-    text-align: center;
-  }
-  .nachricht-text { font-size: 13.5px; line-height: 1.4; }
+  .nachricht-ungelesen { background: rgba(212, 162, 78, 0.09); }
+  .nachricht-ungelesen td:first-child { position: relative; }
+  .nachricht-text { font-size: 13px; line-height: 1.4; }
   .nachricht-zeit {
     color: var(--text-dim);
     font-size: 11.5px;
-    margin-top: 2px;
+    white-space: nowrap;
   }
 
   .leer {
@@ -396,11 +402,6 @@
 </style>
 </head>
 <body>
-
-<header>
-  <h1>Tinu-Trading</h1>
-  <p class="stand" id="standZeit">Lädt…</p>
-</header>
 
 <main>
   <section id="register-kontostand" class="register aktiv">
@@ -457,34 +458,10 @@
     </div>
   </section>
 
-  <section id="register-trades" class="register">
-    <h2>Offene Positionen je Handelsvariante</h2>
-    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Schieber pausiert nur NEUE Trades — offene Positionen laufen normal weiter.</p>
-    <div class="system-liste" id="systemListe"></div>
-
-    <h2 style="margin-top:24px;">Aktuelle Trades</h2>
-    <div class="tabelle-karte">
-    <table>
-      <thead>
-        <tr>
-          <th>System</th>
-          <th>Symbol</th>
-          <th>Richtung</th>
-          <th class="zahl-spalte">Lot</th>
-          <th class="zahl-spalte">P/L</th>
-          <th>Schliessen</th>
-        </tr>
-      </thead>
-      <tbody id="tradesTabelle"></tbody>
-    </table>
-    </div>
-    <p class="leer" id="tradesLeer" style="display:none;">Keine offenen Positionen.</p>
-  </section>
-
   <section id="register-ergebnisse" class="register">
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
-    <div class="tabelle-karte">
+    <div class="tabelle-karte tabelle-scroll">
     <table>
       <thead>
         <tr>
@@ -502,26 +479,63 @@
     <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
   </section>
 
+  <section id="register-trades" class="register">
+    <h2>Offene Positionen je Handelsvariante</h2>
+    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Schieber pausiert nur NEUE Trades — offene Positionen laufen normal weiter.</p>
+    <div class="system-liste" id="systemListe"></div>
+
+    <h2 style="margin-top:24px;">Aktuelle Trades</h2>
+    <div class="tabelle-karte tabelle-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>System</th>
+          <th>Symbol</th>
+          <th>Richtung</th>
+          <th class="zahl-spalte">Lot</th>
+          <th class="zahl-spalte">P/L</th>
+          <th>Schliessen</th>
+        </tr>
+      </thead>
+      <tbody id="tradesTabelle"></tbody>
+    </table>
+    </div>
+    <p class="leer" id="tradesLeer" style="display:none;">Keine offenen Positionen.</p>
+  </section>
+
   <section id="register-nachrichten" class="register">
     <h2>Nachrichten</h2>
-    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Gewinn-/Verluststufen, Systemunterbrüche und Fernaktionen — dieselben Ereignisse wie per Telegram-Bot.</p>
-    <div id="nachrichtenListe"></div>
+    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Gewinn-/Verluststufen, Systemunterbrüche und Fernaktionen — dieselben Ereignisse wie per Telegram-Bot. Antippen schaltet gelesen/ungelesen um.</p>
+    <div class="tabelle-karte tabelle-scroll">
+    <table class="tabelle-nachrichten">
+      <thead>
+        <tr>
+          <th></th>
+          <th>Zeit</th>
+          <th>Meldung</th>
+        </tr>
+      </thead>
+      <tbody id="nachrichtenTabelle"></tbody>
+    </table>
+    </div>
     <p class="kreisdiagramm-leer" id="nachrichtenLeer" style="display:none;">Noch keine Nachrichten.</p>
   </section>
 </main>
 
 <nav id="tabBar">
+  <span class="tab-welle" id="tabWelle"></span>
+  <span class="stand-anzeige" id="standZeit">–</span>
   <button class="tab-btn aktiv" data-register="kontostand">
     <span class="tab-icon">📊</span>
     <span class="tab-label">Dashboard</span>
   </button>
-  <button class="tab-btn" data-register="trades">
-    <span class="tab-icon">📈</span>
-    <span class="tab-label">Handel</span>
-  </button>
   <button class="tab-btn" data-register="ergebnisse">
     <span class="tab-icon">🧾</span>
     <span class="tab-label">Ergebnisse</span>
+  </button>
+  <button class="tab-btn" data-register="trades">
+    <span class="tab-icon">📈</span>
+    <span class="tab-label">Handel</span>
   </button>
   <button class="tab-btn" data-register="nachrichten">
     <span class="tab-icon" style="position:relative;">
@@ -642,15 +656,14 @@ async function ladeStatus() {
     const daten = (await antwort.json()).record;
     zeigeStatus(daten);
   } catch (fehler) {
-    document.getElementById("standZeit").textContent =
-      "Daten konnten nicht geladen werden — läuft der Portfolio-Koordinator?";
+    document.getElementById("standZeit").textContent = "⚠ Offline";
     console.error(fehler);
   }
 }
 
 function zeigeStatus(daten) {
-  const zeit = new Date(daten.zeitstempel).toLocaleTimeString("de-CH");
-  document.getElementById("standZeit").textContent = `Stand: ${zeit} Uhr`;
+  const zeit = new Date(daten.zeitstempel).toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
+  document.getElementById("standZeit").textContent = zeit;
 
   document.getElementById("kontostand").textContent =
     `${formatZahlCH(daten.kontostand)} EUR`;
@@ -819,7 +832,8 @@ let letzteBekanntUngeleseneAnzahl = -1; // -1 = erster Durchlauf, noch kein Verg
 
 function markiereEinzelnAlsGelesen(zeit) {
   const gelesen = gelesenSet();
-  gelesen.add(zeit);
+  if (gelesen.has(zeit)) gelesen.delete(zeit);  // erneutes Antippen: wieder als ungelesen markieren
+  else gelesen.add(zeit);
   speichereGelesenSet(gelesen, letzteNachrichtenDaten);
   zeigeNachrichten(letzteNachrichtenDaten); // neu rendern: Hervorhebung + Badge aktualisieren
 }
@@ -829,9 +843,9 @@ let letzteNachrichtenDaten = [];
 function zeigeNachrichten(nachrichtenVoll) {
   letzteNachrichtenDaten = nachrichtenVoll;
   const nachrichten = nachrichtenVoll.slice(0, NACHRICHTEN_ANZEIGE_MAX);
-  const liste = document.getElementById("nachrichtenListe");
+  const tabelle = document.getElementById("nachrichtenTabelle");
   const leer = document.getElementById("nachrichtenLeer");
-  liste.innerHTML = "";
+  tabelle.innerHTML = "";
   leer.style.display = nachrichten.length === 0 ? "block" : "none";
 
   const gelesen = gelesenSet();
@@ -840,18 +854,17 @@ function zeigeNachrichten(nachrichtenVoll) {
     const zeit = new Date(n.zeit);
     const zeitLesbar = zeit.toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit" })
       + " · " + zeit.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
-    const div = document.createElement("div");
-    div.className = "nachricht" + (!gelesen.has(n.zeit) ? " nachricht-ungelesen" : "");
-    div.style.cursor = "pointer";
-    div.innerHTML = `
-      <span class="nachricht-icon">${NACHRICHTEN_ICONS[n.typ] || "•"}</span>
-      <div>
-        <div class="nachricht-text">${n.text}</div>
-        <div class="nachricht-zeit">${zeitLesbar}</div>
-      </div>
+    const istUngelesen = !gelesen.has(n.zeit);
+    const tr = document.createElement("tr");
+    tr.className = istUngelesen ? "nachricht-ungelesen" : "";
+    tr.style.cursor = "pointer";
+    tr.innerHTML = `
+      <td>${NACHRICHTEN_ICONS[n.typ] || "•"}</td>
+      <td class="nachricht-zeit">${zeitLesbar}</td>
+      <td class="nachricht-text">${n.text}</td>
     `;
-    div.addEventListener("click", () => markiereEinzelnAlsGelesen(n.zeit));
-    liste.appendChild(div);
+    tr.addEventListener("click", () => markiereEinzelnAlsGelesen(n.zeit));
+    tabelle.appendChild(tr);
   }
 
   aktualisiereBadgeUndTon(nachrichtenVoll);
@@ -1256,14 +1269,29 @@ function zeichneBalkendiagramm(verlauf) {
 }
 
 // ── Register-Umschaltung ─────────────────────────────────────────────
+function positioniereWelle() {
+  const aktiverBtn = document.querySelector(".tab-btn.aktiv");
+  const bar = document.getElementById("tabBar");
+  if (!aktiverBtn || !bar) return;
+  const btnRect = aktiverBtn.getBoundingClientRect();
+  const barRect = bar.getBoundingClientRect();
+  const mitteX = btnRect.left + btnRect.width / 2 - barRect.left;
+  bar.style.setProperty("--tab-x", `${mitteX}px`);
+}
+
 document.querySelectorAll("nav button").forEach(btn => {
   btn.addEventListener("click", () => {
     document.querySelectorAll("nav button").forEach(b => b.classList.remove("aktiv"));
     document.querySelectorAll(".register").forEach(r => r.classList.remove("aktiv"));
     btn.classList.add("aktiv");
     document.getElementById(`register-${btn.dataset.register}`).classList.add("aktiv");
+    positioniereWelle();
   });
 });
+
+window.addEventListener("resize", positioniereWelle);
+window.addEventListener("load", positioniereWelle);
+positioniereWelle();
 
 ladeStatus();
 setInterval(ladeStatus, AKTUALISIERUNG_SEKUNDEN * 1000);
