@@ -402,7 +402,7 @@
 
   <section id="register-ergebnisse" class="register">
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
-    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Zeigt den zuletzt im Dashboard ausgewählten Tag.</p>
+    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
     <table>
       <thead>
         <tr>
@@ -761,20 +761,29 @@ function zeigeHandelshistorie() {
   const leer = document.getElementById("handelshistorieLeer");
   tabelle.innerHTML = "";
 
-  if (!ausgewaehltesDatum) {
-    titel.textContent = "Handelshistorie";
-    leer.style.display = "block";
-    return;
+  const heute = new Date().toISOString().slice(0, 10);
+  let zeitraumTrades = alleTradesDerWoche;
+  let zeitraumLabel = "Woche gesamt";
+  if (donutModus === "tag") {
+    if (!ausgewaehltesDatum) {
+      titel.textContent = "Handelshistorie";
+      leer.style.display = "block";
+      return;
+    }
+    zeitraumTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
+    const datumLesbar = new Date(ausgewaehltesDatum + "T00:00:00")
+      .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
+    zeitraumLabel = ausgewaehltesDatum === heute ? "Heute" : datumLesbar;
   }
 
-  const heute = new Date().toISOString().slice(0, 10);
-  const datumLesbar = new Date(ausgewaehltesDatum + "T00:00:00")
-    .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
-  titel.textContent = ausgewaehltesDatum === heute
-    ? "Handelshistorie — Heute"
-    : `Handelshistorie — ${datumLesbar}`;
+  const tagesTrades = ausgewaehltesSystemDonut
+    ? zeitraumTrades.filter(t => t.system === ausgewaehltesSystemDonut)
+    : zeitraumTrades;
 
-  const tagesTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
+  titel.textContent = ausgewaehltesSystemDonut
+    ? `Handelshistorie — ${ausgewaehltesSystemDonut} (${zeitraumLabel})`
+    : `Handelshistorie — ${zeitraumLabel}`;
+
   leer.style.display = tagesTrades.length === 0 ? "block" : "none";
 
   for (const t of tagesTrades) {
