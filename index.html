@@ -84,23 +84,25 @@
 
   .stats-reihe {
     display: flex;
-    gap: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
     margin-bottom: 22px;
   }
   .stat {
-    flex: 1;
+    flex: 1 1 100px;
+    min-width: 100px;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 14px 16px;
+    padding: 12px 12px;
   }
   .stat .label {
     color: var(--text-dim);
-    font-size: 12px;
+    font-size: 11.5px;
     margin: 0 0 4px;
   }
   .stat .zahl {
-    font-size: 20px;
+    font-size: 17px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
   }
@@ -119,6 +121,28 @@
     margin-bottom: 16px;
   }
   #kreisdiagramm { flex-shrink: 0; }
+
+  .donut-paar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+  .donut-karte {
+    flex: 1 1 150px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    min-width: 0;
+  }
+  .donut-karte svg { flex-shrink: 0; }
+  .donut-karte .legende { font-size: 11.5px; gap: 4px; }
+  .donut-karte .legende-punkt { width: 7px; height: 7px; }
+
   .legende {
     display: flex;
     flex-direction: column;
@@ -295,16 +319,17 @@
   <nav>
     <button class="aktiv" data-register="kontostand">📊 Dashboard</button>
     <button data-register="trades">📈 Handelsplattform</button>
+    <button data-register="ergebnisse">🧾 Handelsergebnisse</button>
   </nav>
 </header>
 
 <main>
   <section id="register-kontostand" class="register aktiv">
-    <div class="hero">
-      <p class="label">Kontostand</p>
-      <p class="zahl" id="kontostand">–</p>
-    </div>
     <div class="stats-reihe">
+      <div class="stat">
+        <p class="label">Kontostand</p>
+        <p class="zahl" id="kontostand">–</p>
+      </div>
       <div class="stat">
         <p class="label">Tages-PnL</p>
         <p class="zahl" id="tagesPnl">–</p>
@@ -315,60 +340,42 @@
       </div>
     </div>
 
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px;">
-      <h2 id="kreisdiagrammTitel" style="margin:0;">Heutige Ergebnisse je Handelsvariante</h2>
-      <div class="modus-umschalter" id="ergebnisModusSchalter"></div>
-    </div>
-    <div class="system-filter" id="systemFilterErgebnis"></div>
-    <div class="kreisdiagramm-zeile" id="kreisdiagrammZeile">
-      <svg id="kreisdiagramm" viewBox="0 0 120 120" width="120" height="120"></svg>
-      <div>
-        <p class="label" style="margin:0 0 2px;" id="ergebnisLabel">Tagessumme</p>
-        <p style="margin:0 0 12px; display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;">
-          <span class="zahl" id="tagessumme" style="font-size:19px;">–</span>
-          <span id="ergebnisMinMax" style="color:var(--text-dim); font-size:12.5px;"></span>
-        </p>
-        <div class="legende" id="legende"></div>
-      </div>
-    </div>
-
-    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:24px;">
-      <h2 id="gewinnrateTitel" style="margin:0;">Gewinnrate — Heute</h2>
-      <div class="modus-umschalter" id="gewinnrateModusSchalter"></div>
-    </div>
-    <div class="system-filter" id="systemFilter"></div>
-    <div class="kreisdiagramm-zeile" id="gewinnrateZeile">
-      <svg id="gewinnrateDonut" viewBox="0 0 120 120" width="120" height="120"></svg>
-      <div>
-        <p class="label" style="margin:0 0 2px;">Gewinnrate</p>
-        <p style="margin:0 0 12px; display:flex; align-items:baseline; gap:8px;">
-          <span class="zahl" id="gewinnrateWert" style="font-size:24px;">–</span>
-          <span id="gewinnrateAnzahl" style="color:var(--text-dim); font-size:13px;"></span>
-        </p>
-        <div class="legende" id="gewinnrateLegende"></div>
-      </div>
-    </div>
-
-    <h2 style="margin-top:24px;">Wochenverlauf je Handelsvariante</h2>
+    <h2 style="margin-top:20px;">Wochenverlauf je Handelsvariante</h2>
     <svg id="balkendiagramm" viewBox="0 0 660 230" width="100%" height="200"></svg>
     <div class="legende legende-balken" id="legendeBalken"></div>
-    <p class="kreisdiagramm-leer" style="margin-top:2px;">Auf einen Tag klicken, um ihn oben im Kreisdiagramm und unten in der Handelshistorie anzuzeigen.</p>
+    <p class="kreisdiagramm-leer" style="margin-top:2px;">Auf einen Tag klicken, um ihn in den Kreisdiagrammen unten und in den Handelsergebnissen anzuzeigen.</p>
 
-    <h2 id="handelshistorieTitel" style="margin-top:20px;">Handelshistorie</h2>
-    <table>
-      <thead>
-        <tr>
-          <th>Zeit</th>
-          <th>System</th>
-          <th>Symbol</th>
-          <th>Richtung</th>
-          <th class="zahl-spalte">Lot</th>
-          <th class="zahl-spalte">Ergebnis</th>
-        </tr>
-      </thead>
-      <tbody id="handelshistorieTabelle"></tbody>
-    </table>
-    <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:22px;">
+      <h2 style="margin:0;">Ergebnisse &amp; Gewinnrate</h2>
+      <div class="modus-umschalter" id="donutModusSchalter"></div>
+    </div>
+    <div class="system-filter" id="donutSystemFilter"></div>
+
+    <div class="donut-paar">
+      <div class="donut-karte">
+        <svg id="kreisdiagramm" viewBox="0 0 120 120" width="92" height="92"></svg>
+        <div>
+          <p class="label" id="kreisdiagrammTitel" style="margin:0 0 2px;">Heute</p>
+          <p style="margin:0 0 8px; display:flex; flex-direction:column; gap:2px;">
+            <span class="zahl" id="tagessumme" style="font-size:17px;">–</span>
+            <span id="ergebnisMinMax" style="color:var(--text-dim); font-size:11px;"></span>
+          </p>
+          <div class="legende" id="legende"></div>
+        </div>
+      </div>
+
+      <div class="donut-karte">
+        <svg id="gewinnrateDonut" viewBox="0 0 120 120" width="92" height="92"></svg>
+        <div>
+          <p class="label" id="gewinnrateTitel" style="margin:0 0 2px;">Heute</p>
+          <p style="margin:0 0 8px; display:flex; flex-direction:column; gap:2px;">
+            <span class="zahl" id="gewinnrateWert" style="font-size:20px;">–</span>
+            <span id="gewinnrateAnzahl" style="color:var(--text-dim); font-size:11px;"></span>
+          </p>
+          <div class="legende" id="gewinnrateLegende"></div>
+        </div>
+      </div>
+    </div>
   </section>
 
   <section id="register-trades" class="register">
@@ -391,6 +398,25 @@
       <tbody id="tradesTabelle"></tbody>
     </table>
     <p class="leer" id="tradesLeer" style="display:none;">Keine offenen Positionen.</p>
+  </section>
+
+  <section id="register-ergebnisse" class="register">
+    <h2 id="handelshistorieTitel">Handelshistorie</h2>
+    <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Zeigt den zuletzt im Dashboard ausgewählten Tag.</p>
+    <table>
+      <thead>
+        <tr>
+          <th>Zeit</th>
+          <th>System</th>
+          <th>Symbol</th>
+          <th>Richtung</th>
+          <th class="zahl-spalte">Lot</th>
+          <th class="zahl-spalte">Ergebnis</th>
+        </tr>
+      </thead>
+      <tbody id="handelshistorieTabelle"></tbody>
+    </table>
+    <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
   </section>
 </main>
 
@@ -598,8 +624,8 @@ let wochenVerlauf = [];
 let alleTradesDerWoche = [];
 let ausgewaehltesDatum = null;
 
-let ergebnisModus = "tag"; // "tag" | "woche"
-let gewinnrateModus = "tag"; // "tag" | "woche"
+let donutModus = "tag"; // "tag" | "woche" — gilt fuer BEIDE Donuts gemeinsam
+let ausgewaehltesSystemDonut = null; // null = alle Systeme zusammen — gilt fuer BEIDE Donuts
 const SYSTEM_NAMEN = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
 
 function zeigeModusSchalter(containerId, aktuellerModus, beiKlick) {
@@ -614,45 +640,41 @@ function zeigeModusSchalter(containerId, aktuellerModus, beiKlick) {
   }
 }
 
-function aktualisiereDiagramme() {
-  zeigeModusSchalter("ergebnisModusSchalter", ergebnisModus, (wert) => {
-    ergebnisModus = wert;
-    aktualisiereDiagramme();
-  });
-
-  zeichneKreisdiagramm();
-  zeichneBalkendiagramm(wochenVerlauf);
-  zeigeHandelshistorie();
-  zeigeSystemFilter();
-  zeichneGewinnrateDonut();
-}
-
-// ── Gewinnrate-Donut: standardmässig der ausgewählte Tag (wie der
-// Ergebnis-Donut, folgt also demselben Balkenklick), per Umschalter auch
-// als Wochensumme; zusätzlich per Klick auf eine Handelsvariante gefiltert
-let ausgewaehltesSystemGewinnrate = null; // null = alle Systeme zusammen
-
-function zeigeSystemFilter() {
-  const filter = document.getElementById("systemFilter");
+function zeigeDonutSystemFilter() {
+  const filter = document.getElementById("donutSystemFilter");
   filter.innerHTML = "";
   const systeme = ["Alle", ...Object.keys(SYSTEM_FARBEN).filter(s => s !== "Unbekannt")];
   for (const system of systeme) {
     const chip = document.createElement("button");
     chip.className = "system-chip" + (
-      (system === "Alle" && !ausgewaehltesSystemGewinnrate) ||
-      system === ausgewaehltesSystemGewinnrate ? " aktiv" : ""
+      (system === "Alle" && !ausgewaehltesSystemDonut) ||
+      system === ausgewaehltesSystemDonut ? " aktiv" : ""
     );
     chip.textContent = system;
     if (chip.classList.contains("aktiv")) {
       chip.style.background = system === "Alle" ? "var(--accent)" : SYSTEM_FARBEN[system];
     }
     chip.addEventListener("click", () => {
-      ausgewaehltesSystemGewinnrate = system === "Alle" ? null : system;
-      zeigeSystemFilter();
+      ausgewaehltesSystemDonut = system === "Alle" ? null : system;
+      zeigeDonutSystemFilter();
+      zeichneKreisdiagramm();
       zeichneGewinnrateDonut();
     });
     filter.appendChild(chip);
   }
+}
+
+function aktualisiereDiagramme() {
+  zeigeModusSchalter("donutModusSchalter", donutModus, (wert) => {
+    donutModus = wert;
+    aktualisiereDiagramme();
+  });
+  zeigeDonutSystemFilter();
+
+  zeichneKreisdiagramm();
+  zeichneGewinnrateDonut();
+  zeichneBalkendiagramm(wochenVerlauf);
+  zeigeHandelshistorie();
 }
 
 function zeichneGewinnrateDonut() {
@@ -663,27 +685,22 @@ function zeichneGewinnrateDonut() {
   svg.innerHTML = "";
   legende.innerHTML = "";
 
-  zeigeModusSchalter("gewinnrateModusSchalter", gewinnrateModus, (wert) => {
-    gewinnrateModus = wert;
-    zeichneGewinnrateDonut();
-  });
-
   const heute = new Date().toISOString().slice(0, 10);
   let zeitraumTrades = alleTradesDerWoche;
   let zeitraumLabel = "Woche gesamt";
-  if (gewinnrateModus === "tag" && ausgewaehltesDatum) {
+  if (donutModus === "tag" && ausgewaehltesDatum) {
     zeitraumTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
     const datumLesbar = new Date(ausgewaehltesDatum + "T00:00:00")
       .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
     zeitraumLabel = ausgewaehltesDatum === heute ? "Heute" : datumLesbar;
   }
 
-  titel.textContent = ausgewaehltesSystemGewinnrate
-    ? `Gewinnrate — ${ausgewaehltesSystemGewinnrate} (${zeitraumLabel})`
+  titel.textContent = ausgewaehltesSystemDonut
+    ? `Gewinnrate — ${ausgewaehltesSystemDonut} (${zeitraumLabel})`
     : `Gewinnrate — ${zeitraumLabel}`;
 
-  const relevanteTrades = ausgewaehltesSystemGewinnrate
-    ? zeitraumTrades.filter(t => t.system === ausgewaehltesSystemGewinnrate)
+  const relevanteTrades = ausgewaehltesSystemDonut
+    ? zeitraumTrades.filter(t => t.system === ausgewaehltesSystemDonut)
     : zeitraumTrades;
 
   const gewinne = relevanteTrades.filter(t => t.gewinn > 0).length;
@@ -784,59 +801,30 @@ const SYSTEM_FARBEN = {
   Unbekannt: "#5a6270",
 };
 
-let ausgewaehltesSystemErgebnis = null; // null = alle Systeme zusammen
-
-function zeigeSystemFilterErgebnis() {
-  const filter = document.getElementById("systemFilterErgebnis");
-  filter.innerHTML = "";
-  const systeme = ["Alle", ...Object.keys(SYSTEM_FARBEN).filter(s => s !== "Unbekannt")];
-  for (const system of systeme) {
-    const chip = document.createElement("button");
-    chip.className = "system-chip" + (
-      (system === "Alle" && !ausgewaehltesSystemErgebnis) ||
-      system === ausgewaehltesSystemErgebnis ? " aktiv" : ""
-    );
-    chip.textContent = system;
-    if (chip.classList.contains("aktiv")) {
-      chip.style.background = system === "Alle" ? "var(--accent)" : SYSTEM_FARBEN[system];
-    }
-    chip.addEventListener("click", () => {
-      ausgewaehltesSystemErgebnis = system === "Alle" ? null : system;
-      zeigeSystemFilterErgebnis();
-      zeichneKreisdiagramm();
-    });
-    filter.appendChild(chip);
-  }
-}
-
 function zeichneKreisdiagramm() {
   const svg = document.getElementById("kreisdiagramm");
   const legende = document.getElementById("legende");
   const wertEl = document.getElementById("tagessumme");
   const titel = document.getElementById("kreisdiagrammTitel");
-  const label = document.getElementById("ergebnisLabel");
   svg.innerHTML = "";
   legende.innerHTML = "";
-  zeigeSystemFilterErgebnis();
 
   const heute = new Date().toISOString().slice(0, 10);
   let zeitraumTrades = alleTradesDerWoche;
   let zeitraumLabel = "Woche gesamt";
-  label.textContent = "Wochensumme";
-  if (ergebnisModus === "tag" && ausgewaehltesDatum) {
+  if (donutModus === "tag" && ausgewaehltesDatum) {
     zeitraumTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
     const datumLesbar = new Date(ausgewaehltesDatum + "T00:00:00")
       .toLocaleDateString("de-CH", { weekday: "short", day: "2-digit", month: "2-digit" });
     zeitraumLabel = ausgewaehltesDatum === heute ? "Heute" : datumLesbar;
-    label.textContent = "Tagessumme";
   }
 
-  titel.textContent = ausgewaehltesSystemErgebnis
-    ? `Ergebnisse — ${ausgewaehltesSystemErgebnis} (${zeitraumLabel})`
-    : `Ergebnisse — ${zeitraumLabel} je Handelsvariante`;
+  titel.textContent = ausgewaehltesSystemDonut
+    ? `Ergebnis — ${ausgewaehltesSystemDonut} (${zeitraumLabel})`
+    : `Ergebnis — ${zeitraumLabel}`;
 
-  const relevanteTrades = ausgewaehltesSystemErgebnis
-    ? zeitraumTrades.filter(t => t.system === ausgewaehltesSystemErgebnis)
+  const relevanteTrades = ausgewaehltesSystemDonut
+    ? zeitraumTrades.filter(t => t.system === ausgewaehltesSystemDonut)
     : zeitraumTrades;
 
   const gewinnSumme = relevanteTrades.filter(t => t.gewinn > 0).reduce((s, t) => s + t.gewinn, 0);
