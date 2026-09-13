@@ -935,7 +935,7 @@ function zeichneBalkendiagramm(verlauf) {
   const sekundaerMax = Math.max(1, ...kumuliert.map(Math.abs));
 
   const hoehe = 230, nullLinieY = 115, halbeHoehe = 88;
-  const plotLinks = 46, plotRechts = 655, plotBreite = plotRechts - plotLinks;
+  const plotLinks = 8, plotRechts = 655, plotBreite = plotRechts - plotLinks;
   const tagBreite = plotBreite / verlauf.length;
   const balkenBreite = (tagBreite - 12) / systeme.length;
 
@@ -950,18 +950,6 @@ function zeichneBalkendiagramm(verlauf) {
   svg.appendChild(el("line", {
     x1: plotLinks, x2: plotRechts, y1: nullLinieY, y2: nullLinieY, stroke: "#262f3d"
   }));
-
-  // Achsenbeschriftung Primär (links, grau) und Sekundär (rechts, amber)
-  const beschriftung = (text, x, y, anker, farbe) => {
-    const t = el("text", {
-      x, y, fill: farbe, "font-size": "10.5", "text-anchor": anker,
-    });
-    t.textContent = text;
-    svg.appendChild(t);
-  };
-  beschriftung(`+${formatZahlCH(primaerMax)}`, plotLinks - 6, nullLinieY - halbeHoehe + 3, "end", "#8b93a3");
-  beschriftung("0", plotLinks - 6, nullLinieY + 4, "end", "#8b93a3");
-  beschriftung(`−${formatZahlCH(primaerMax)}`, plotLinks - 6, nullLinieY + halbeHoehe + 3, "end", "#8b93a3");
 
   verlauf.forEach((tag, i) => {
     const gruppeX = plotLinks + i * tagBreite + 6;
