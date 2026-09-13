@@ -84,17 +84,15 @@
 
   .stats-reihe {
     display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
+    gap: 6px;
     margin-bottom: 22px;
   }
   .stat {
-    flex: 1 1 100px;
-    min-width: 100px;
+    flex: 1;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 12px 12px;
+    padding: 12px 10px;
   }
   .stat .label {
     color: var(--text-dim);
@@ -124,12 +122,11 @@
 
   .donut-paar {
     display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
+    flex-direction: column;
+    gap: 10px;
     margin-bottom: 16px;
   }
   .donut-karte {
-    flex: 1 1 150px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -917,7 +914,7 @@ function zeichneBalkendiagramm(verlauf) {
   const linienLegende = document.createElement("div");
   linienLegende.className = "legende-eintrag";
   linienLegende.innerHTML = `
-    <span class="legende-punkt" style="background:#d4a24e"></span>
+    <span class="legende-punkt" style="background:#4a5262"></span>
     <span>Kumuliert seit ${verlauf.length ? new Date(verlauf[0].datum + "T00:00:00").toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit" }) : ""} (Linie)</span>
   `;
   legende.appendChild(linienLegende);
@@ -938,7 +935,7 @@ function zeichneBalkendiagramm(verlauf) {
   const sekundaerMax = Math.max(1, ...kumuliert.map(Math.abs));
 
   const hoehe = 230, nullLinieY = 115, halbeHoehe = 88;
-  const plotLinks = 46, plotRechts = 614, plotBreite = plotRechts - plotLinks;
+  const plotLinks = 46, plotRechts = 655, plotBreite = plotRechts - plotLinks;
   const tagBreite = plotBreite / verlauf.length;
   const balkenBreite = (tagBreite - 12) / systeme.length;
 
@@ -965,9 +962,6 @@ function zeichneBalkendiagramm(verlauf) {
   beschriftung(`+${formatZahlCH(primaerMax)}`, plotLinks - 6, nullLinieY - halbeHoehe + 3, "end", "#8b93a3");
   beschriftung("0", plotLinks - 6, nullLinieY + 4, "end", "#8b93a3");
   beschriftung(`−${formatZahlCH(primaerMax)}`, plotLinks - 6, nullLinieY + halbeHoehe + 3, "end", "#8b93a3");
-
-  beschriftung(`+${formatZahlCH(sekundaerMax)}`, plotRechts + 6, nullLinieY - halbeHoehe + 3, "start", "#d4a24e");
-  beschriftung(`−${formatZahlCH(sekundaerMax)}`, plotRechts + 6, nullLinieY + halbeHoehe + 3, "start", "#d4a24e");
 
   verlauf.forEach((tag, i) => {
     const gruppeX = plotLinks + i * tagBreite + 6;
@@ -1019,14 +1013,15 @@ function zeichneBalkendiagramm(verlauf) {
 
   const linie = el("polyline", {
     points: punkte.map(p => `${p.x},${p.y}`).join(" "),
-    fill: "none", stroke: "#d4a24e", "stroke-width": "2.5",
+    fill: "none", stroke: "#4a5262", "stroke-width": "2.5",
+    "stroke-dasharray": "6 5",
     "stroke-linejoin": "round", "stroke-linecap": "round",
   });
   linie.style.pointerEvents = "none";
   svg.appendChild(linie);
 
   punkte.forEach(p => {
-    const punkt = el("circle", { cx: p.x, cy: p.y, r: "3.5", fill: "#d4a24e" });
+    const punkt = el("circle", { cx: p.x, cy: p.y, r: "3.5", fill: "#4a5262" });
     punkt.style.pointerEvents = "none";
     svg.appendChild(punkt);
   });
