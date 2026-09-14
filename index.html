@@ -503,6 +503,8 @@
           <th>Symbol</th>
           <th>Richtung</th>
           <th class="zahl-spalte">Lot</th>
+          <th class="zahl-spalte">Einstieg</th>
+          <th class="zahl-spalte">Kurs</th>
           <th class="zahl-spalte">P/L</th>
           <th>Schliessen</th>
         </tr>
@@ -564,7 +566,7 @@ const BIN_ID = "6aa44985ac6210605ac1c64a";
 // Master-Key — dieser Code liegt in einem öffentlichen Repository, der
 // Master-Key hätte Schreib-/Löschzugriff auf ALLE Bins im Konto.
 const ACCESS_KEY = "$2a$10$cxxzLQ0Keh0XA2AVA3A4E.JQuGVPIGKPI8tZsPx40RqkHfsDZ3IC2";
-const AKTUALISIERUNG_SEKUNDEN = 90;
+const AKTUALISIERUNG_SEKUNDEN = 30; // 14.09.2026: 90->30, an Koordinator-Schreibtakt angeglichen
 
 // Zweiter, separater Bin für Befehle (Trade schliessen, Pause) — dieser
 // Access-Key braucht Lesen UND Schreiben (nicht nur Lesen), da ein Befehl
@@ -591,6 +593,13 @@ function formatZahlCH(wert, nachkomma = 2) {
 function formatEUR(wert) {
   const vz = wert >= 0 ? "+" : "−";
   return `${vz}${formatZahlCH(wert)} EUR`;
+}
+
+function formatKurs(wert) {
+  if (wert === undefined || wert === null) return "–";
+  let s = wert.toFixed(5).replace(/0+$/, "").replace(/\.$/, "");
+  if (!s.includes(".")) s = wert.toFixed(1); // z.B. Indizes ohne Nachkommastellen
+  return s;
 }
 
 function setZahl(el, wert, mitVorzeichen) {
@@ -624,6 +633,27 @@ async function sendeBefehl(mutiere) {
   if (!schreibAntwort.ok) throw new Error(`Schreiben fehlgeschlagen: HTTP ${schreibAntwort.status}`);
 }
 
+// Burst-Polling (14.09.2026 ergänzt): nach einem gesendeten Befehl
+// (Schliessen/Pause) für kurze Zeit schneller nachfragen, statt starr auf
+// den nächsten 90s-Zyklus zu warten. Läuft parallel zum normalen
+// setInterval, ohne dessen Grund-Takt dauerhaft zu erhöhen — sparsam mit
+// dem JSONBin-Kontingent, aber spürbar schneller bei echten Aktionen.
+let burstPollingAktiv = false;
+function starteBurstPolling() {
+  if (burstPollingAktiv) return;
+  burstPollingAktiv = true;
+  let versuche = 0;
+  const maxVersuche = 8;       // 8 x 5s = 40s Nachlauf
+  const intervall = setInterval(() => {
+    versuche++;
+    ladeStatus();
+    if (versuche >= maxVersuche) {
+      clearInterval(intervall);
+      burstPollingAktiv = false;
+    }
+  }, 5000);
+}
+
 async function schliesseTradeUeberSchieber(ticket, schieberEl) {
   if (!confirm(`Trade (Ticket ${ticket}) wirklich schliessen?`)) {
     schieberEl.checked = false;
@@ -634,7 +664,7 @@ async function schliesseTradeUeberSchieber(ticket, schieberEl) {
     await sendeBefehl(inhalt => {
       inhalt.schliess_befehle.push({ ticket, verarbeitet: false });
     });
-    alert("Befehl gesendet — die Position wird in Kürze geschlossen (nächster Koordinator-Durchlauf).");
+    starteBurstPolling();
   } catch (fehler) {
     alert("Befehl konnte nicht gesendet werden: " + fehler.message);
     schieberEl.checked = false;
@@ -648,6 +678,7 @@ async function pauseUmschalten(system, aktiv, schieberEl) {
     await sendeBefehl(inhalt => {
       inhalt.pausiert[system] = aktiv;
     });
+    starteBurstPolling();
   } catch (fehler) {
     alert("Befehl konnte nicht gesendet werden: " + fehler.message);
     schieberEl.checked = !aktiv;
@@ -754,6 +785,8 @@ function zeigeStatus(daten) {
         <td>${p.symbol}</td>
         <td class="${richtungKlasse}">${p.richtung}</td>
         <td class="zahl-spalte">${p.lot.toFixed(2)}</td>
+        <td class="zahl-spalte">${formatKurs(p.einstieg)}</td>
+        <td class="zahl-spalte">${formatKurs(p.kurs)}</td>
         <td class="zahl-spalte ${p.profit >= 0 ? "pos" : "neg"}">${formatEUR(p.profit)}</td>
         <td>
           <label class="schieber" title="Trade schliessen">
