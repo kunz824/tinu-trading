@@ -355,6 +355,7 @@
     max-height: 360px;
     overflow-y: auto;
   }
+  .tabelle-scroll-hoch { max-height: 480px; }
   .tabelle-scroll thead th {
     position: sticky;
     top: 0;
@@ -515,7 +516,7 @@
   <section id="register-nachrichten" class="register">
     <h2>Nachrichten</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Gewinn-/Verluststufen, Systemunterbrüche und Fernaktionen — dieselben Ereignisse wie per Telegram-Bot. Antippen schaltet gelesen/ungelesen um.</p>
-    <div class="tabelle-karte tabelle-scroll">
+    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch">
     <table class="tabelle-nachrichten">
       <thead>
         <tr>
@@ -674,10 +675,40 @@ function zeigeStatus(daten) {
   const zeit = new Date(daten.zeitstempel).toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
   document.getElementById("standZeit").textContent = zeit;
 
+  // Sicherheitsfilter (13.09.2026 ergänzt): unabhängig davon, was der
+  // Koordinator liefert, verwirft die App selbst alles ausserhalb des
+  // rollierenden 7-Tage-Fensters (heute inklusive) — sowohl Tagessummen
+  // als auch Einzeltrades. Hier VOR die Kachel-Berechnung gezogen
+  // (14.09.2026), damit Tages-/Wochen-PnL-Kachel dieselbe, bereits
+  // gefilterte Datengrundlage nutzen wie die Kreisdiagramme.
+  const aeltesterGueltigerTag = new Date();
+  aeltesterGueltigerTag.setDate(aeltesterGueltigerTag.getDate() - 6);
+  const aeltesterGueltigerTagISO = aeltesterGueltigerTag.toISOString().slice(0, 10);
+
+  wochenVerlauf = (daten.taegliche_ergebnisse_je_system || [])
+    .filter(t => t.datum >= aeltesterGueltigerTagISO);
+  alleTradesDerWoche = (daten.trades_der_woche || [])
+    .filter(t => t.datum >= aeltesterGueltigerTagISO);
+
   document.getElementById("kontostand").textContent =
     `${formatZahlCH(daten.kontostand)} EUR`;
-  setZahl(document.getElementById("tagesPnl"), daten.tages_pnl, true);
-  setZahl(document.getElementById("wochenPnl"), daten.wochen_pnl, true);
+
+  // BUGFIX 14.09.2026: Tages-/Wochen-PnL-Kachel wichen von den
+  // Kreisdiagrammen ab, weil sie bisher die simple Kontostand-Differenz
+  // des Koordinators zeigten (daten.tages_pnl/wochen_pnl) — die
+  // Kreisdiagramme rechnen aber ECHT aus den einzelnen Trades der vier
+  // bekannten Systeme. Jetzt beide Kacheln aus derselben Quelle wie die
+  // Donuts: Tages-PnL = heutiger Eintrag aus wochenVerlauf (alle Systeme
+  // summiert), Wochen-PnL = alle Einträge des 7-Tage-Fensters summiert.
+  const heuteISO = new Date().toISOString().slice(0, 10);
+  const systemNamenPnl = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
+  const heuteEintragPnl = wochenVerlauf.find(t => t.datum === heuteISO);
+  const tagesPnlEcht = heuteEintragPnl
+    ? systemNamenPnl.reduce((s, sys) => s + (heuteEintragPnl[sys] || 0), 0) : 0;
+  const wochenPnlEcht = wochenVerlauf.reduce(
+    (s, tag) => s + systemNamenPnl.reduce((s2, sys) => s2 + (tag[sys] || 0), 0), 0);
+  setZahl(document.getElementById("tagesPnl"), tagesPnlEcht, true);
+  setZahl(document.getElementById("wochenPnl"), wochenPnlEcht, true);
 
   const systemListe = document.getElementById("systemListe");
   systemListe.innerHTML = "";
@@ -744,23 +775,6 @@ function zeigeStatus(daten) {
   document.getElementById("tradesLeer").style.display =
     gesamtTrades === 0 ? "block" : "none";
 
-  // Sicherheitsfilter (13.09.2026 ergänzt): unabhängig davon, was der
-  // Koordinator liefert, verwirft die App selbst alles ausserhalb des
-  // rollierenden 7-Tage-Fensters (heute inklusive) — sowohl Tagessummen
-  // als auch Einzeltrades. Der Koordinator berechnet dieses Fenster zwar
-  // bereits selbst frisch bei jedem Durchlauf, aber diese zusätzliche
-  // App-seitige Filterung stellt sicher, dass auch bei einer evtl.
-  // veralteten/zwischengespeicherten Antwort nie älter als 7 Tage
-  // angezeigt wird.
-  const aeltesterGueltigerTag = new Date();
-  aeltesterGueltigerTag.setDate(aeltesterGueltigerTag.getDate() - 6);
-  const aeltesterGueltigerTagISO = aeltesterGueltigerTag.toISOString().slice(0, 10);
-
-  wochenVerlauf = (daten.taegliche_ergebnisse_je_system || [])
-    .filter(t => t.datum >= aeltesterGueltigerTagISO);
-  alleTradesDerWoche = (daten.trades_der_woche || [])
-    .filter(t => t.datum >= aeltesterGueltigerTagISO);
-
   if (!wochenVerlauf.some(t => t.datum === ausgewaehltesDatum)) {
     ausgewaehltesDatum = wochenVerlauf.length
       ? wochenVerlauf[wochenVerlauf.length - 1].datum
@@ -817,7 +831,17 @@ function spieleTschingel() {
 
 function aktualisiereBadgeUndTon(nachrichten) {
   const gelesen = gelesenSet();
-  const ungelesen = nachrichten.filter(n => !gelesen.has(n.zeit));
+  let ungelesen = nachrichten.filter(n => !gelesen.has(n.zeit));
+
+  // Max. 30 offene (ungelesene) Nachrichten (14.09.2026 ergänzt) — ältere
+  // ungelesene darüber hinaus werden automatisch als gelesen markiert
+  // (nachrichten ist bereits neueste-zuerst sortiert).
+  if (ungelesen.length > NACHRICHTEN_ANZEIGE_MAX) {
+    const ueberschuss = ungelesen.slice(NACHRICHTEN_ANZEIGE_MAX);
+    ueberschuss.forEach(n => gelesen.add(n.zeit));
+    speichereGelesenSet(gelesen, nachrichten);
+    ungelesen = ungelesen.slice(0, NACHRICHTEN_ANZEIGE_MAX);
+  }
 
   if ("setAppBadge" in navigator) {
     if (ungelesen.length > 0) navigator.setAppBadge(ungelesen.length).catch(() => {});
