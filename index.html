@@ -26,6 +26,21 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     -webkit-font-smoothing: antialiased;
   }
+  #verbindungsWarnung {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: var(--neg);
+    color: #fff;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  }
+
   main {
     padding: 28px 20px 100px;
     max-width: 640px;
@@ -413,6 +428,8 @@
 </head>
 <body>
 
+<div id="verbindungsWarnung" style="display:none;"></div>
+
 <main>
   <section id="register-kontostand" class="register aktiv">
     <div class="stats-reihe">
@@ -699,12 +716,58 @@ async function ladeStatus() {
   } catch (fehler) {
     document.getElementById("standZeit").textContent = "⚠ Offline";
     console.error(fehler);
+    zeigeVerbindungsWarnungSofort("Verbindung zu JSONBin fehlgeschlagen — Internet/Server prüfen.");
   }
 }
+
+// ── Verbindungs-Warnung (15.09.2026 ergänzt) ─────────────────────────
+// Unabhängig vom EA-Watchdog (der nur "CSV unverändert" prüft und daher
+// bei einem komplett heruntergefahrenen PC/Koordinator selbst gar nicht
+// mehr mitläuft): prüft direkt, wie alt der letzte tatsächlich erhaltene
+// Status-Zeitstempel ist. Das ist das einzige Signal, das auch dann noch
+// funktioniert, wenn der PC komplett aus ist — JSONBin selbst bleibt ja
+// erreichbar, liefert dann einfach immer denselben alten Stand.
+const VERBINDUNG_SCHWELLE_MINUTEN = 5; // grosszuegig ueber dem 120s-Schreibtakt
+let letzterBekannterZeitstempel = null;
+
+function zeigeVerbindungsWarnungSofort(text) {
+  const banner = document.getElementById("verbindungsWarnung");
+  banner.textContent = "🔴 " + text;
+  setzeBannerSichtbarkeit(true);
+}
+
+function setzeBannerSichtbarkeit(sichtbar) {
+  const banner = document.getElementById("verbindungsWarnung");
+  banner.style.display = sichtbar ? "block" : "none";
+  requestAnimationFrame(() => {
+    document.querySelector("main").style.paddingTop =
+      sichtbar ? `${28 + banner.offsetHeight}px` : "28px";
+  });
+}
+
+function pruefeVerbindungsAlter() {
+  const banner = document.getElementById("verbindungsWarnung");
+  if (!letzterBekannterZeitstempel) return;
+
+  const alterMs = Date.now() - new Date(letzterBekannterZeitstempel).getTime();
+  const alterMinuten = Math.floor(alterMs / 60000);
+
+  if (alterMinuten >= VERBINDUNG_SCHWELLE_MINUTEN) {
+    banner.textContent = `🔴 Keine Verbindung zum Handels-PC — letzte Daten vor ${alterMinuten} Minuten. Läuft der Portfolio-Koordinator noch?`;
+    setzeBannerSichtbarkeit(true);
+  } else {
+    setzeBannerSichtbarkeit(false);
+  }
+}
+
+setInterval(pruefeVerbindungsAlter, 30000); // tickt unabhängig vom Polling weiter
 
 function zeigeStatus(daten) {
   const zeit = new Date(daten.zeitstempel).toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
   document.getElementById("standZeit").textContent = zeit;
+
+  letzterBekannterZeitstempel = daten.zeitstempel;
+  pruefeVerbindungsAlter();
 
   // Sicherheitsfilter (13.09.2026 ergänzt): unabhängig davon, was der
   // Koordinator liefert, verwirft die App selbst alles ausserhalb des
