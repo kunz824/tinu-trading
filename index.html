@@ -1359,8 +1359,33 @@ window.addEventListener("resize", positioniereWelle);
 window.addEventListener("load", positioniereWelle);
 positioniereWelle();
 
-ladeStatus();
-setInterval(ladeStatus, AKTUALISIERUNG_SEKUNDEN * 1000);
+// Sichtbarkeits-gesteuertes Polling (14.09.2026 ergänzt): JSONBin-
+// Anfragen sind beim Gratis-Konto ein EINMALIGES Guthaben, kein
+// monatliches Kontingent — permanentes Pollen im Hintergrund (Handy
+// gesperrt, App nicht im Vordergrund) verbraucht das unnötig. Läuft nur
+// noch, während die Seite tatsächlich sichtbar ist; beim Wiederöffnen
+// sofortiger Refresh, danach im festgelegten Takt (AKTUALISIERUNG_SEKUNDEN).
+let pollingIntervall = null;
+
+function starteNormalesPolling() {
+  if (pollingIntervall) return; // läuft schon
+  ladeStatus(); // sofort beim (Wieder-)Sichtbarwerden
+  pollingIntervall = setInterval(ladeStatus, AKTUALISIERUNG_SEKUNDEN * 1000);
+}
+
+function stoppeNormalesPolling() {
+  if (pollingIntervall) {
+    clearInterval(pollingIntervall);
+    pollingIntervall = null;
+  }
+}
+
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState === "visible") starteNormalesPolling();
+  else stoppeNormalesPolling();
+});
+
+if (document.visibilityState === "visible") starteNormalesPolling();
 </script>
 
 </body>
