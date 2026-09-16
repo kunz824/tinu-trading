@@ -749,10 +749,19 @@ function zeigeStatus(daten) {
   letzterBekannterZeitstempel = daten.zeitstempel;
   pruefeVerbindungsAlter();
 
-  document.getElementById("jsonbinKontingent").textContent =
-    daten.jsonbin_kontingent_rest != null
-      ? `${formatZahlCH(daten.jsonbin_kontingent_rest, 0)} JSONBin-Anfragen übrig (geschätzt)`
-      : "";
+  const kontingent = daten.jsonbin_kontingent;
+  const kontingentEl = document.getElementById("jsonbinKontingent");
+  if (kontingent && kontingent.rest != null) {
+    let text = `${formatZahlCH(kontingent.rest, 0)} JSONBin-Anfragen übrig (geschätzt)`;
+    if (kontingent.taeglicher_verbrauch && kontingent.erschoepfung_datum) {
+      const datumLesbar = new Date(kontingent.erschoepfung_datum + "T00:00:00")
+        .toLocaleDateString("de-CH", { day: "2-digit", month: "2-digit", year: "numeric" });
+      text += ` · ca. ${formatZahlCH(kontingent.taeglicher_verbrauch, 0)}/Tag · reicht voraussichtlich bis ${datumLesbar}`;
+    }
+    kontingentEl.textContent = text;
+  } else {
+    kontingentEl.textContent = "";
+  }
 
   // Sicherheitsfilter (13.09.2026 ergänzt): unabhängig davon, was der
   // Koordinator liefert, verwirft die App selbst alles ausserhalb des
