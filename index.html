@@ -65,12 +65,12 @@
   .tab-welle {
     position: absolute;
     left: calc(var(--tab-x) - 16px);
-    top: 16px;
+    top: -4px;
     width: 32px;
     height: 32px;
     border-radius: 50%;
     background: radial-gradient(circle, var(--accent) 0%, rgba(212,162,78,0.35) 65%, transparent 100%);
-    transition: left 0.25s ease;
+    transition: left 0.25s ease, top 0.25s ease;
     z-index: 1;
     pointer-events: none;
   }
