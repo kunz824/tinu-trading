@@ -59,8 +59,8 @@
     background: #33363d;
     border-bottom: 1px solid var(--border);
     z-index: -1;
-    -webkit-mask-image: radial-gradient(circle 42px at var(--tab-x) 0px, transparent 82%, black 100%);
-    mask-image: radial-gradient(circle 42px at var(--tab-x) 0px, transparent 82%, black 100%);
+    -webkit-mask-image: radial-gradient(circle 42px at var(--tab-x) 0px, transparent 68%, black 100%);
+    mask-image: radial-gradient(circle 42px at var(--tab-x) 0px, transparent 68%, black 100%);
   }
   .tab-welle {
     position: absolute;
@@ -97,6 +97,10 @@
     max-width: 90px;
     position: relative;
     z-index: 2;
+    transition: transform 0.25s ease;
+  }
+  .tab-btn.aktiv {
+    transform: translateY(-20px);   /* ~20% der Menuband-Gesamthoehe */
   }
   .tab-icon {
     width: 32px;
