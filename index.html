@@ -47,6 +47,7 @@
     padding: 14px 8px calc(10px + env(safe-area-inset-bottom));
     z-index: 10;
     --tab-x: 60px;
+    transform: translateY(25%);
   }
   #tabBar::before {
     content: "";
@@ -58,13 +59,13 @@
     background: #33363d;
     border-bottom: 1px solid var(--border);
     z-index: -1;
-    -webkit-mask-image: radial-gradient(circle 36px at var(--tab-x) 0px, transparent 97%, black 100%);
-    mask-image: radial-gradient(circle 36px at var(--tab-x) 0px, transparent 97%, black 100%);
+    -webkit-mask-image: radial-gradient(circle 42px at var(--tab-x) 0px, transparent 82%, black 100%);
+    mask-image: radial-gradient(circle 42px at var(--tab-x) 0px, transparent 82%, black 100%);
   }
   .tab-welle {
     position: absolute;
     left: calc(var(--tab-x) - 16px);
-    top: 0px;
+    top: 16px;
     width: 32px;
     height: 32px;
     border-radius: 50%;
