@@ -43,7 +43,7 @@
     justify-content: space-around;
     align-items: flex-start;
     gap: 4px;
-    background: var(--bg);
+    background: #2b2e34;
     padding: 14px 8px calc(10px + env(safe-area-inset-bottom));
     z-index: 10;
     --tab-x: 60px;
@@ -55,7 +55,7 @@
     left: 0;
     right: 0;
     height: 62px;
-    background: var(--bg-panel);
+    background: #33363d;
     border-bottom: 1px solid var(--border);
     z-index: -1;
     -webkit-mask-image: radial-gradient(circle 36px at var(--tab-x) 0px, transparent 97%, black 100%);
@@ -63,10 +63,10 @@
   }
   .tab-welle {
     position: absolute;
-    left: calc(var(--tab-x) - 24px);
-    top: -8px;
-    width: 48px;
-    height: 48px;
+    left: calc(var(--tab-x) - 16px);
+    top: 0px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     background: radial-gradient(circle, var(--accent) 0%, rgba(212,162,78,0.35) 65%, transparent 100%);
     transition: left 0.25s ease;
@@ -163,7 +163,7 @@
     gap: 6px;
     margin-bottom: 22px;
   }
-  .stats-reihe-klein .stat { padding: 9.6px 10px; }  /* 20% weniger hoch (Padding reduziert) */
+  .stats-reihe-klein .stat { padding: 8.4px 10px; }  /* 30% weniger hoch (Padding reduziert) */
   .stat {
     flex: 1;
     background: var(--bg-panel);
@@ -375,9 +375,8 @@
 
   .konto-formular {
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
-    align-items: flex-end;
+    flex-direction: column;
+    gap: 12px;
   }
   .konto-formular label {
     display: flex;
@@ -385,7 +384,6 @@
     gap: 4px;
     font-size: 12px;
     color: var(--text-dim);
-    flex: 1 1 120px;
   }
   .konto-formular input {
     background: var(--bg-panel);
@@ -395,6 +393,10 @@
     color: var(--text);
     font-family: inherit;
     font-size: 14px;
+  }
+  .konto-formular-buttons {
+    display: flex;
+    gap: 10px;
   }
   .konto-speichern-btn {
     background: var(--accent);
@@ -406,16 +408,27 @@
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    flex: 0 0 auto;
+    flex: 1;
   }
-  .konto-loeschen-btn {
+  .konto-abbrechen-btn {
+    background: none;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-family: inherit;
+    font-size: 14px;
+    cursor: pointer;
+  }
+  .konto-loeschen-btn, .konto-bearbeiten-btn {
     background: none;
     border: none;
-    color: var(--neg);
     cursor: pointer;
-    font-size: 15px;
+    font-size: 14px;
     padding: 2px 6px;
   }
+  .konto-loeschen-btn { color: var(--neg); }
+  .konto-bearbeiten-btn { color: var(--text-dim); }
   .tabelle-nachrichten td { white-space: normal; }
   th {
     text-align: left;
@@ -472,15 +485,15 @@
         <p class="zahl" id="tagesPnl">–</p>
       </div>
       <div class="stat">
-        <p class="label">Wochen-PnL</p>
-        <p class="zahl" id="wochenPnl">–</p>
+        <p class="label">Wochen-Ø/Tag</p>
+        <p class="zahl" id="wochenDurchschnitt">–</p>
       </div>
     </div>
 
     <div class="stats-reihe stats-reihe-klein" style="margin-top:8px;">
       <div class="stat">
-        <p class="label">Wochen-Ø/Tag</p>
-        <p class="zahl" id="wochenDurchschnitt">–</p>
+        <p class="label">Wochen-PnL</p>
+        <p class="zahl" id="wochenPnl">–</p>
       </div>
       <div class="stat">
         <p class="label">Monats-PnL</p>
@@ -589,21 +602,7 @@
   </section>
 
   <section id="register-konto" class="register">
-    <h2>Neue Bewegung erfassen</h2>
-    <div class="konto-formular">
-      <label>Datum
-        <input type="date" id="kontoDatum">
-      </label>
-      <label>Einzahlung (EUR)
-        <input type="number" id="kontoEinzahlung" placeholder="0.00" step="0.01" min="0">
-      </label>
-      <label>Auszahlung (EUR)
-        <input type="number" id="kontoAuszahlung" placeholder="0.00" step="0.01" min="0">
-      </label>
-      <button id="kontoSpeichern" class="konto-speichern-btn">Speichern</button>
-    </div>
-
-    <div class="stats-reihe stats-reihe-voll" style="margin-top:18px;">
+    <div class="stats-reihe">
       <div class="stat">
         <p class="label">Total Einzahlungen</p>
         <p class="zahl" id="kontoTotalEinzahlung">–</p>
@@ -621,6 +620,23 @@
     <h2 style="margin-top:20px;">Verlauf nach Monat</h2>
     <svg id="kontoDiagramm" viewBox="0 0 660 230" width="100%" height="200"></svg>
     <p class="kreisdiagramm-leer" id="kontoDiagrammLeer" style="display:none;">Noch keine Bewegungen erfasst.</p>
+
+    <h2 id="kontoFormularTitel" style="margin-top:20px;">Neue Bewegung erfassen</h2>
+    <div class="konto-formular">
+      <label>Datum
+        <input type="date" id="kontoDatum">
+      </label>
+      <label>Einzahlung (EUR)
+        <input type="number" id="kontoEinzahlung" placeholder="0.00" step="0.01" min="0">
+      </label>
+      <label>Auszahlung (EUR)
+        <input type="number" id="kontoAuszahlung" placeholder="0.00" step="0.01" min="0">
+      </label>
+      <div class="konto-formular-buttons">
+        <button id="kontoSpeichern" class="konto-speichern-btn">Speichern</button>
+        <button id="kontoAbbrechen" class="konto-abbrechen-btn" style="display:none;">Abbrechen</button>
+      </div>
+    </div>
 
     <h2 style="margin-top:20px;">Verlauf</h2>
     <div class="tabelle-karte tabelle-scroll">
@@ -804,6 +820,7 @@ async function pauseUmschalten(system, aktiv, schieberEl) {
 // weiteres Feld in derselben JSON-Struktur, der Koordinator ignoriert es
 // (kennt nur schliess_befehle/pausiert), also unkritisch für ihn.
 let letzteKontoBewegungen = [];
+let kontoBearbeitungsIndex = null; // null = neue Bewegung, sonst Index der bearbeiteten
 
 async function ladeKontoBewegungen() {
   try {
@@ -847,13 +864,39 @@ function zeigeKonto() {
       <td>${datumLesbar}</td>
       <td>${b.typ === "einzahlung" ? "Einzahlung" : "Auszahlung"}</td>
       <td class="zahl-spalte">${formatZahlCH(b.betrag)} EUR</td>
-      <td><button class="konto-loeschen-btn" title="Löschen">✕</button></td>
+      <td>
+        <button class="konto-bearbeiten-btn" title="Bearbeiten">✎</button>
+        <button class="konto-loeschen-btn" title="Löschen">✕</button>
+      </td>
     `;
-    tr.querySelector("button").addEventListener("click", () => loescheKontoBewegung(echterIndex));
+    tr.querySelector(".konto-bearbeiten-btn").addEventListener("click", () => bearbeiteKontoBewegung(echterIndex));
+    tr.querySelector(".konto-loeschen-btn").addEventListener("click", () => loescheKontoBewegung(echterIndex));
     tabelle.appendChild(tr);
   });
 
   zeichneKontoDiagramm();
+}
+
+function bearbeiteKontoBewegung(index) {
+  const b = letzteKontoBewegungen[index];
+  kontoBearbeitungsIndex = index;
+  document.getElementById("kontoDatum").value = b.datum;
+  document.getElementById("kontoEinzahlung").value = b.typ === "einzahlung" ? b.betrag : "";
+  document.getElementById("kontoAuszahlung").value = b.typ === "auszahlung" ? b.betrag : "";
+  document.getElementById("kontoFormularTitel").textContent = "Bewegung bearbeiten";
+  document.getElementById("kontoSpeichern").textContent = "Änderung speichern";
+  document.getElementById("kontoAbbrechen").style.display = "inline-block";
+  document.getElementById("kontoFormularTitel").scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function bricheKontoBearbeitungAb() {
+  kontoBearbeitungsIndex = null;
+  document.getElementById("kontoDatum").value = new Date().toISOString().slice(0, 10);
+  document.getElementById("kontoEinzahlung").value = "";
+  document.getElementById("kontoAuszahlung").value = "";
+  document.getElementById("kontoFormularTitel").textContent = "Neue Bewegung erfassen";
+  document.getElementById("kontoSpeichern").textContent = "Speichern";
+  document.getElementById("kontoAbbrechen").style.display = "none";
 }
 
 async function speichereKontoBewegung() {
@@ -867,12 +910,22 @@ async function speichereKontoBewegung() {
   const btn = document.getElementById("kontoSpeichern");
   btn.disabled = true;
   try {
-    await sendeBefehl(inhalt => {
-      if (einzahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "einzahlung", betrag: einzahlung });
-      if (auszahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "auszahlung", betrag: auszahlung });
-    });
-    document.getElementById("kontoEinzahlung").value = "";
-    document.getElementById("kontoAuszahlung").value = "";
+    if (kontoBearbeitungsIndex !== null) {
+      // Bearbeiten: genau EIN Eintrag wird ersetzt — nutzt das zuerst
+      // ausgefuellte Feld (Einzahlung bevorzugt, falls beide gefuellt)
+      const neuerTyp = einzahlung > 0 ? "einzahlung" : "auszahlung";
+      const neuerBetrag = einzahlung > 0 ? einzahlung : auszahlung;
+      const index = kontoBearbeitungsIndex;
+      await sendeBefehl(inhalt => {
+        inhalt.konto_bewegungen[index] = { datum, typ: neuerTyp, betrag: neuerBetrag };
+      });
+    } else {
+      await sendeBefehl(inhalt => {
+        if (einzahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "einzahlung", betrag: einzahlung });
+        if (auszahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "auszahlung", betrag: auszahlung });
+      });
+    }
+    bricheKontoBearbeitungAb();
     await ladeKontoBewegungen();
   } catch (fehler) {
     alert("Konnte nicht gespeichert werden: " + fehler.message);
@@ -887,6 +940,7 @@ async function loescheKontoBewegung(index) {
     await sendeBefehl(inhalt => {
       inhalt.konto_bewegungen.splice(index, 1);
     });
+    if (kontoBearbeitungsIndex === index) bricheKontoBearbeitungAb();
     await ladeKontoBewegungen();
   } catch (fehler) {
     alert("Konnte nicht gelöscht werden: " + fehler.message);
@@ -976,6 +1030,7 @@ function zeichneKontoDiagramm() {
 }
 
 document.getElementById("kontoSpeichern").addEventListener("click", speichereKontoBewegung);
+document.getElementById("kontoAbbrechen").addEventListener("click", bricheKontoBearbeitungAb);
 document.getElementById("kontoDatum").value = new Date().toISOString().slice(0, 10);
 
 async function ladeStatus() {
