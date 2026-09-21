@@ -164,13 +164,12 @@
     gap: 6px;
     margin-bottom: 22px;
   }
-  .stats-reihe-klein .stat { padding: 8.4px 10px; }  /* 30% weniger hoch (Padding reduziert) */
   .stat {
     flex: 1;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 12px 10px;
+    padding: 8.4px 10px;
   }
   .stat .label {
     color: var(--text-dim);
@@ -499,6 +498,17 @@
       <div class="stat">
         <p class="label">Monats-PnL</p>
         <p class="zahl" id="monatsPnl">–</p>
+      </div>
+    </div>
+
+    <div class="stats-reihe stats-reihe-klein" style="margin-top:8px;">
+      <div class="stat">
+        <p class="label">FC Woche</p>
+        <p class="zahl" id="fcWoche">–</p>
+      </div>
+      <div class="stat">
+        <p class="label">FC Monat</p>
+        <p class="zahl" id="fcMonat">–</p>
       </div>
     </div>
 
@@ -1152,6 +1162,13 @@ function zeigeStatus(daten) {
   // Monats-PnL kommt direkt vom Koordinator (eigene 30-Tage-Abfrage,
   // nicht aus dem 7-Tage-Fenster ableitbar, das App-weit sonst gilt)
   setZahl(document.getElementById("monatsPnl"), daten.monats_pnl || 0, true);
+
+  // FC (Forecast) — reine Hochrechnung aus dem Tagesdurchschnitt der
+  // laufenden Woche, nicht der tatsächliche Wochen-/Monats-Stand.
+  // Woche = 7 Kalendertage, Monat = 30 Tage (gleiche Konvention wie
+  // Monats-PnL oben).
+  setZahl(document.getElementById("fcWoche"), wochenDurchschnittEcht * 7, true);
+  setZahl(document.getElementById("fcMonat"), wochenDurchschnittEcht * 30, true);
 
   const systemListe = document.getElementById("systemListe");
   systemListe.innerHTML = "";
