@@ -34,6 +34,15 @@
   .register { display: none; }
   .register.aktiv { display: block; }
 
+  #register-kontostand {
+    zoom: 0.7;   /* 22.09.2026: gesamtes Dashboard-Register fuer iPhone
+                    um 30% verkleinert -- skaliert Schrift, Abstaende
+                    und Diagramme gleichmaessig, mit korrektem Layout-
+                    Reflow (anders als transform:scale). Betrifft NUR
+                    dieses Register, andere (Ergebnisse/Handel/Konto/
+                    Nachrichten) bleiben unveraendert. */
+  }
+
   #tabBar {
     position: fixed;
     left: 0;
