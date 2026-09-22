@@ -162,14 +162,14 @@
   .stats-reihe {
     display: flex;
     gap: 6px;
-    margin-bottom: 22px;
+    margin-bottom: 11px;
   }
   .stat {
     flex: 1;
     background: var(--bg-panel);
     border: 1px solid var(--border);
     border-radius: 10px;
-    padding: 8.4px 10px;
+    padding: 4.2px 10px;
   }
   .stat .label {
     color: var(--text-dim);
@@ -446,8 +446,9 @@
   td.richtung-buy { color: var(--pos); }
   td.richtung-sell { color: var(--neg); }
 
-  .nachricht-ungelesen { background: rgba(212, 162, 78, 0.09); }
+  .nachricht-ungelesen { background: #fff; color: #000; }
   .nachricht-ungelesen td:first-child { position: relative; }
+  .nachricht-gelesen { background: var(--bg-panel); color: #fff; }
   .nachricht-text { font-size: 13px; line-height: 1.4; }
   .nachricht-zeit {
     color: var(--text-dim);
@@ -512,7 +513,7 @@
       </div>
     </div>
 
-    <svg id="balkendiagramm" viewBox="0 0 660 230" width="100%" height="200" style="margin-top:20px;"></svg>
+    <svg id="balkendiagramm" viewBox="0 0 660 230" width="100%" height="200" style="margin-top:10px;"></svg>
 
     <div style="display:flex; align-items:center; justify-content:flex-end; gap:10px; margin-top:22px;">
       <div class="modus-umschalter" id="donutModusSchalter"></div>
@@ -549,7 +550,7 @@
   <section id="register-ergebnisse" class="register">
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
-    <div class="tabelle-karte tabelle-scroll">
+    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch">
     <table>
       <thead>
         <tr>
@@ -1165,12 +1166,13 @@ function zeigeStatus(daten) {
   // nicht aus dem 7-Tage-Fenster ableitbar, das App-weit sonst gilt)
   setZahl(document.getElementById("monatsPnl"), daten.monats_pnl || 0, true);
 
-  // FC (Forecast) — reine Hochrechnung aus dem Tagesdurchschnitt der
-  // laufenden Woche, nicht der tatsächliche Wochen-/Monats-Stand.
-  // Woche = 7 Kalendertage, Monat = 30 Tage (gleiche Konvention wie
-  // Monats-PnL oben).
-  setZahl(document.getElementById("fcWoche"), wochenDurchschnittEcht * 7, true);
-  setZahl(document.getElementById("fcMonat"), wochenDurchschnittEcht * 30, true);
+  // FC (Forecast) — Martins Formeln (22.09.2026):
+  // FC Woche = (Tages-PnL + Wochen-Ø/Tag) / 2
+  // FC Monat = ((Monats-PnL/30 + FC Woche/7) / 2) * 30
+  const fcWocheEcht = (tagesPnlEcht + wochenDurchschnittEcht) / 2;
+  const fcMonatEcht = ((daten.monats_pnl || 0) / 30 + fcWocheEcht / 7) / 2 * 30;
+  setZahl(document.getElementById("fcWoche"), fcWocheEcht, true);
+  setZahl(document.getElementById("fcMonat"), fcMonatEcht, true);
 
   const systemListe = document.getElementById("systemListe");
   systemListe.innerHTML = "";
@@ -1365,7 +1367,7 @@ function zeigeNachrichten(nachrichtenVoll) {
       + " · " + zeit.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
     const istUngelesen = !gelesen.has(n.zeit);
     const tr = document.createElement("tr");
-    tr.className = istUngelesen ? "nachricht-ungelesen" : "";
+    tr.className = istUngelesen ? "nachricht-ungelesen" : "nachricht-gelesen";
     tr.style.cursor = "pointer";
     tr.innerHTML = `
       <td>${NACHRICHTEN_ICONS[n.typ] || "•"}</td>
