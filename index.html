@@ -1169,7 +1169,7 @@ function zeigeStatus(daten) {
   // FC (Forecast) — Martins Formeln (22.09.2026):
   // FC Woche = (Tages-PnL + Wochen-Ø/Tag) / 2
   // FC Monat = ((Monats-PnL/30 + FC Woche/7) / 2) * 30
-  const fcWocheEcht = (tagesPnlEcht + wochenDurchschnittEcht) / 2;
+  const fcWocheEcht = (tagesPnlEcht + wochenDurchschnittEcht) / 2 * 7;
   const fcMonatEcht = ((daten.monats_pnl || 0) / 30 + fcWocheEcht / 7) / 2 * 30;
   setZahl(document.getElementById("fcWoche"), fcWocheEcht, true);
   setZahl(document.getElementById("fcMonat"), fcMonatEcht, true);
