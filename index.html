@@ -559,6 +559,7 @@
           <th>Richtung</th>
           <th class="zahl-spalte">Lot</th>
           <th class="zahl-spalte">Ergebnis</th>
+          <th>Grund</th>
         </tr>
       </thead>
       <tbody id="handelshistorieTabelle"></tbody>
@@ -584,6 +585,7 @@
           <th class="zahl-spalte">Einstieg</th>
           <th class="zahl-spalte">Kurs</th>
           <th class="zahl-spalte">P/L</th>
+          <th></th>
           <th>Schliessen</th>
         </tr>
       </thead>
@@ -1217,6 +1219,7 @@ function zeigeStatus(daten) {
         <td class="zahl-spalte">${formatKurs(p.einstieg)}</td>
         <td class="zahl-spalte">${formatKurs(p.kurs)}</td>
         <td class="zahl-spalte ${p.profit >= 0 ? "pos" : "neg"}">${formatEUR(p.profit)}</td>
+        <td>${p.teilschliessung ? "TS" : "–"}</td>
         <td>
           <label class="schieber" title="Trade schliessen">
             <input type="checkbox">
@@ -1553,6 +1556,7 @@ function zeigeHandelshistorie() {
       <td class="${richtungKlasse}">${t.richtung}</td>
       <td class="zahl-spalte">${t.lot.toFixed(2)}</td>
       <td class="zahl-spalte ${t.gewinn >= 0 ? "pos" : "neg"}">${formatEUR(t.gewinn)}</td>
+      <td>${t.grund || "?"}</td>
     `;
     tabelle.appendChild(tr);
   }
