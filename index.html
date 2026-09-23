@@ -42,6 +42,10 @@
                     dieses Register, andere (Ergebnisse/Handel/Konto/
                     Nachrichten) bleiben unveraendert. */
   }
+  #register-ergebnisse, #register-trades {
+    zoom: 0.7;   /* 23.09.2026: dieselbe Skalierung wie im Dashboard-
+                    Register, auf Martins Wunsch analog angewendet. */
+  }
 
   #tabBar {
     position: fixed;
@@ -590,8 +594,15 @@
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Schieber pausiert nur NEUE Trades — offene Positionen laufen normal weiter.</p>
     <div class="system-liste" id="systemListe"></div>
 
+    <div class="stats-reihe stats-reihe-klein" style="margin-top:8px;">
+      <div class="stat">
+        <p class="label">Summe aller offenen Trades</p>
+        <p class="zahl" id="offeneSumme">–</p>
+      </div>
+    </div>
+
     <h2 style="margin-top:24px;">Aktuelle Trades</h2>
-    <div class="tabelle-karte tabelle-scroll">
+    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch">
     <table>
       <thead>
         <tr>
@@ -1206,12 +1217,14 @@ function zeigeStatus(daten) {
   const tradesTabelle = document.getElementById("tradesTabelle");
   tradesTabelle.innerHTML = "";
   let gesamtTrades = 0;
+  let gesamtSumme = 0;
   const kreisdiagrammDaten = [];
 
   for (const [system, positionen] of Object.entries(daten.positionen_je_system || {})) {
     if (system === "Unbekannt" && positionen.length === 0) continue;
 
     const summe = positionen.reduce((s, p) => s + p.profit, 0);
+    gesamtSumme += summe;
     const pausiertAktuell = (daten.pausiert || {})[system] || false;
     const zeile = document.createElement("div");
     zeile.className = "system-zeile";
@@ -1268,6 +1281,7 @@ function zeigeStatus(daten) {
 
   document.getElementById("tradesLeer").style.display =
     gesamtTrades === 0 ? "block" : "none";
+  setZahl(document.getElementById("offeneSumme"), gesamtSumme, true);
 
   if (!wochenVerlauf.some(t => t.datum === ausgewaehltesDatum)) {
     ausgewaehltesDatum = wochenVerlauf.length
