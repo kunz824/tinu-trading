@@ -342,6 +342,9 @@
     width: 38px;
     height: 22px;
     flex-shrink: 0;
+    transform: scale(2);
+    transform-origin: right center;
+    margin-right: 6px;   /* Platz fuer den vergroesserten Schieber schaffen */
   }
   .schieber input { opacity: 0; width: 0; height: 0; }
   .schieber-optik {
@@ -570,7 +573,7 @@
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
     <p class="grund-legende">SL Stop-Loss · ML Max-Loss · TP Take-Profit · TR Trailing · TRS Trailing-Stop · TS Teilschliessung · CO Coach · T1 Momentum schwach</p>
-    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch">
+    <div class="tabelle-karte tabelle-scroll">
     <table>
       <thead>
         <tr>
@@ -1557,6 +1560,14 @@ function zeichneGewinnrateDonut() {
   }
 }
 
+// System-Abkürzungen für die Handelshistorie-Tabelle (Platzgrund, iPhone)
+const SYSTEM_ABKUERZUNG = {
+  CopyTrading: "CT",
+  CopyTradingEnhanced: "CT_Enh",
+  CopyTradingPlatinum: "CT_PLA",
+  TinuAgents: "TA",
+};
+
 function zeigeHandelshistorie() {
   const titel = document.getElementById("handelshistorieTitel");
   const tabelle = document.getElementById("handelshistorieTabelle");
@@ -1593,7 +1604,7 @@ function zeigeHandelshistorie() {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${t.zeit}</td>
-      <td>${t.system}</td>
+      <td>${SYSTEM_ABKUERZUNG[t.system] || t.system}</td>
       <td>${t.symbol}</td>
       <td class="${richtungKlasse}">${t.richtung}</td>
       <td class="zahl-spalte">${t.lot.toFixed(2)}</td>
