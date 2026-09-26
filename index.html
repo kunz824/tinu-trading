@@ -381,6 +381,15 @@
     overflow-y: auto;
   }
   .tabelle-scroll-hoch { max-height: 480px; }
+  .tabelle-scroll-sehr-hoch { max-height: 640px; }
+  /* 2026-09-26: seitenoptimierte Variante fuer die Tabelle "Aktuelle
+     Trades" (9 Spalten, auf schmalen Phones bisher deutlich breiter als
+     der Viewport) -- kleinere Schrift/Innenabstaende UND reduzierte
+     Mindestbreite, zusammen mit den jetzt abgekuerzten Systemnamen
+     spuerbar weniger horizontales Scrollen. */
+  .tabelle-kompakt table { min-width: 400px; font-size: 12px; }
+  .tabelle-kompakt th { padding: 8px 6px 6px; }
+  .tabelle-kompakt td { padding: 8px 6px; }
   .tabelle-scroll thead th {
     position: sticky;
     top: 0;
@@ -575,7 +584,7 @@
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
     <p class="grund-legende">SL Stop-Loss · ML Max-Loss · TP Take-Profit · TR Trailing · TRS Trailing-Stop · TS Teilschliessung · CO Coach · T1 Momentum schwach</p>
-    <div class="tabelle-karte tabelle-scroll">
+    <div class="tabelle-karte tabelle-scroll tabelle-scroll-sehr-hoch">
     <table>
       <thead>
         <tr>
@@ -606,7 +615,7 @@
     <div class="system-liste" id="systemListe"></div>
 
     <h2 style="margin-top:24px;">Aktuelle Trades</h2>
-    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch">
+    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch tabelle-kompakt">
     <table>
       <thead>
         <tr>
@@ -1166,8 +1175,9 @@ function zeigeStatus(daten) {
   if (!daten) {
     document.getElementById("standZeit").textContent = "–";
     document.getElementById("kontostand").textContent = "–";
-    for (const id of ["tagesPnl", "wochenDurchschnitt", "wochenPnl", "monatsPnl", "offeneSumme"]) {
+    for (const id of ["tagesPnl", "wochenDurchschnitt", "wochenPnl", "monatsPnl", "offeneSumme", "fcWoche", "fcMonat"]) {
       document.getElementById(id).textContent = "–";
+      document.getElementById(id).classList.remove("pos", "neg");
     }
     document.getElementById("systemListe").innerHTML = "";
     document.getElementById("tradesTabelle").innerHTML = "";
@@ -1296,7 +1306,7 @@ function zeigeStatus(daten) {
       const richtungKlasse = p.richtung === "BUY" ? "richtung-buy" : "richtung-sell";
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${system}</td>
+        <td>${SYSTEM_ABKUERZUNG[system] || system}</td>
         <td>${p.symbol}</td>
         <td class="${richtungKlasse}">${p.richtung}</td>
         <td class="zahl-spalte">${p.lot.toFixed(2)}</td>
