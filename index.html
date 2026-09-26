@@ -497,6 +497,12 @@
 <body>
 
 <main>
+  <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
+       style="margin: 10px 12px 2px; display:flex; justify-content:center;"></div>
+  <p id="globalModusLeer" class="kreisdiagramm-leer" style="display:none; margin: 0 12px 8px;">
+    Noch keine Live-Daten — der Live-Koordinator-Prozess läuft entweder noch nicht, oder es ist noch keine
+    Position/kein Zyklus im Real-Konto gelaufen.
+  </p>
   <section id="register-kontostand" class="register aktiv">
     <div class="stats-reihe">
       <div class="stat">
@@ -794,11 +800,19 @@ async function sendeBefehl(mutiere) {
   const inhalt = (await antwort.json()).record || {};
 
   inhalt.schliess_befehle = inhalt.schliess_befehle || [];
-  inhalt.pausiert = inhalt.pausiert || {
+  // 2026-09-26: nach Modus verschachtelt (Demo/Live) — verhindert, dass
+  // ein Pause-Klick oder eine Konto-Bewegung in der falschen Instanz
+  // landet. Live vorerst nur mit CopyTrading, da einziges real-
+  // vorbereitetes System (siehe Koordinator MAGIC_SYSTEME_JE_MODUS).
+  inhalt.pausiert = inhalt.pausiert || {};
+  inhalt.pausiert.demo = inhalt.pausiert.demo || {
     CopyTrading: false, CopyTradingEnhanced: false,
-    CopyTradingPlatinum: false, TinuAgents: false,
+    CopyTradingPlatinum: false, TinuAgents: false, TinuRobot: false,
   };
-  inhalt.konto_bewegungen = inhalt.konto_bewegungen || [];
+  inhalt.pausiert.live = inhalt.pausiert.live || { CopyTrading: false };
+  inhalt.konto_bewegungen = inhalt.konto_bewegungen || {};
+  inhalt.konto_bewegungen.demo = inhalt.konto_bewegungen.demo || [];
+  inhalt.konto_bewegungen.live = inhalt.konto_bewegungen.live || [];
   inhalt.pin = BEFEHLE_PIN;
 
   mutiere(inhalt);
@@ -854,7 +868,8 @@ async function pauseUmschalten(system, aktiv, schieberEl) {
   schieberEl.disabled = true;
   try {
     await sendeBefehl(inhalt => {
-      inhalt.pausiert[system] = aktiv;
+      inhalt.pausiert[MODUS_AKTUELL] = inhalt.pausiert[MODUS_AKTUELL] || {};
+      inhalt.pausiert[MODUS_AKTUELL][system] = aktiv;
     });
     starteBurstPolling();
   } catch (fehler) {
@@ -871,6 +886,7 @@ async function pauseUmschalten(system, aktiv, schieberEl) {
 // weiteres Feld in derselben JSON-Struktur, der Koordinator ignoriert es
 // (kennt nur schliess_befehle/pausiert), also unkritisch für ihn.
 let letzteKontoBewegungen = [];
+let letzteKontoBewegungenDokument = null; // Cache: kompletter Befehle-Bin-Inhalt, für instant Modus-Wechsel
 let kontoBearbeitungsIndex = null; // null = neue Bewegung, sonst Index der bearbeiteten
 
 async function ladeKontoBewegungen() {
@@ -881,7 +897,8 @@ async function ladeKontoBewegungen() {
     });
     if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
     const inhalt = (await antwort.json()).record || {};
-    letzteKontoBewegungen = inhalt.konto_bewegungen || [];
+    letzteKontoBewegungenDokument = inhalt;
+    letzteKontoBewegungen = (inhalt.konto_bewegungen || {})[MODUS_AKTUELL] || [];
   } catch (fehler) {
     console.error("Konto-Bewegungen konnten nicht geladen werden:", fehler);
   }
@@ -968,12 +985,12 @@ async function speichereKontoBewegung() {
       const neuerBetrag = einzahlung > 0 ? einzahlung : auszahlung;
       const index = kontoBearbeitungsIndex;
       await sendeBefehl(inhalt => {
-        inhalt.konto_bewegungen[index] = { datum, typ: neuerTyp, betrag: neuerBetrag };
+        inhalt.konto_bewegungen[MODUS_AKTUELL][index] = { datum, typ: neuerTyp, betrag: neuerBetrag };
       });
     } else {
       await sendeBefehl(inhalt => {
-        if (einzahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "einzahlung", betrag: einzahlung });
-        if (auszahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "auszahlung", betrag: auszahlung });
+        if (einzahlung > 0) inhalt.konto_bewegungen[MODUS_AKTUELL].push({ datum, typ: "einzahlung", betrag: einzahlung });
+        if (auszahlung > 0) inhalt.konto_bewegungen[MODUS_AKTUELL].push({ datum, typ: "auszahlung", betrag: auszahlung });
       });
     }
     bricheKontoBearbeitungAb();
@@ -989,7 +1006,7 @@ async function loescheKontoBewegung(index) {
   if (!confirm("Diese Bewegung wirklich löschen?")) return;
   try {
     await sendeBefehl(inhalt => {
-      inhalt.konto_bewegungen.splice(index, 1);
+      inhalt.konto_bewegungen[MODUS_AKTUELL].splice(index, 1);
     });
     if (kontoBearbeitungsIndex === index) bricheKontoBearbeitungAb();
     await ladeKontoBewegungen();
@@ -1091,8 +1108,9 @@ async function ladeStatus() {
       cache: "no-store",
     });
     if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
-    const daten = (await antwort.json()).record;
-    zeigeStatus(daten);
+    letztesVollDokument = (await antwort.json()).record || {};
+    zeigeGlobalenModusSchalter();
+    zeigeStatus(letztesVollDokument[MODUS_AKTUELL] || null);
   } catch (fehler) {
     document.getElementById("standZeit").textContent = "⚠ Offline";
     console.error(fehler);
@@ -1139,6 +1157,25 @@ function pruefeVerbindungsAlter() {
 setInterval(pruefeVerbindungsAlter, 30000); // tickt unabhängig vom Polling weiter
 
 function zeigeStatus(daten) {
+  const leerHinweis = document.getElementById("globalModusLeer");
+  if (!daten) {
+    leerHinweis.style.display = "block";
+    document.getElementById("standZeit").textContent = "–";
+    document.getElementById("kontostand").textContent = "–";
+    for (const id of ["tagesPnl", "wochenDurchschnitt", "wochenPnl", "monatsPnl", "offeneSumme"]) {
+      document.getElementById(id).textContent = "–";
+    }
+    document.getElementById("systemListe").innerHTML = "";
+    document.getElementById("tradesTabelle").innerHTML = "";
+    document.getElementById("tradesLeer").style.display = "block";
+    wochenVerlauf = [];
+    alleTradesDerWoche = [];
+    aktualisiereDiagramme();
+    zeigeNachrichten([]);
+    return;
+  }
+  leerHinweis.style.display = "none";
+
   const zeit = new Date(daten.zeitstempel).toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
   document.getElementById("standZeit").textContent = zeit;
 
@@ -1185,7 +1222,7 @@ function zeigeStatus(daten) {
   // Donuts: Tages-PnL = heutiger Eintrag aus wochenVerlauf (alle Systeme
   // summiert), Wochen-PnL = alle Einträge des 7-Tage-Fensters summiert.
   const heuteISO = new Date().toISOString().slice(0, 10);
-  const systemNamenPnl = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
+  const systemNamenPnl = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
   const heuteEintragPnl = wochenVerlauf.find(t => t.datum === heuteISO);
   const tagesPnlEcht = heuteEintragPnl
     ? systemNamenPnl.reduce((s, sys) => s + (heuteEintragPnl[sys] || 0), 0) : 0;
@@ -1428,9 +1465,42 @@ let wochenVerlauf = [];
 let alleTradesDerWoche = [];
 let ausgewaehltesDatum = null;
 
+// ── Übergeordneter Demo/Live-Schalter (2026-09-26 ergänzt) ───────────
+// Der Status-Bin enthält jetzt zwei Zweige ({"demo": {...}, "live": {...}}),
+// je einer pro Koordinator-Prozess. MODUS_AKTUELL bestimmt, welcher Zweig
+// gerade angezeigt wird — "dupliziert" quasi alle Register (Kontostand,
+// Verlauf, Positionen, Nachrichten, Konto-Bewegungen), OHNE dass diese
+// selbst geändert werden mussten: sie alle nehmen weiterhin einfach
+// "daten" entgegen, nur WAS als "daten" hineingereicht wird, ändert sich.
+let MODUS_AKTUELL = "demo";
+let letztesVollDokument = null; // Cache: kompletter Bin-Inhalt ({demo, live})
+
+function zeigeGlobalenModusSchalter() {
+  const container = document.getElementById("globalModusSchalter");
+  container.innerHTML = "";
+  for (const [wert, label] of [["demo", "🎮 Demo"], ["live", "💰 Live"]]) {
+    const btn = document.createElement("button");
+    btn.textContent = label;
+    btn.className = wert === MODUS_AKTUELL ? "aktiv" : "";
+    btn.addEventListener("click", () => {
+      if (wert === MODUS_AKTUELL) return;
+      MODUS_AKTUELL = wert;
+      zeigeGlobalenModusSchalter();
+      zeigeStatus((letztesVollDokument || {})[MODUS_AKTUELL] || null);
+      // Konto-Bewegungen hängen ebenfalls vom Modus ab -- bei
+      // vorhandenem Cache sofort neu anzeigen, sonst frisch laden.
+      if (letzteKontoBewegungenDokument) {
+        letzteKontoBewegungen = (letzteKontoBewegungenDokument.konto_bewegungen || {})[MODUS_AKTUELL] || [];
+        zeigeKonto();
+      }
+    });
+    container.appendChild(btn);
+  }
+}
+
 let donutModus = "tag"; // "tag" | "woche" — gilt fuer BEIDE Donuts gemeinsam
 let ausgewaehltesSystemDonut = null; // null = alle Systeme zusammen — gilt fuer BEIDE Donuts
-const SYSTEM_NAMEN = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
+const SYSTEM_NAMEN = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
 
 function zeigeModusSchalter(containerId, aktuellerModus, beiKlick) {
   const container = document.getElementById(containerId);
@@ -1566,6 +1636,7 @@ const SYSTEM_ABKUERZUNG = {
   CopyTradingEnhanced: "CT_Enh",
   CopyTradingPlatinum: "CT_PLA",
   TinuAgents: "TA",
+  TinuRobot: "TR",
 };
 
 function zeigeHandelshistorie() {
@@ -1621,6 +1692,7 @@ const SYSTEM_FARBEN = {
   CopyTradingEnhanced: "#5aa9bb",
   CopyTradingPlatinum: "#9b8ad1",
   TinuAgents: "#4caf7d",
+  TinuRobot: "#e0785a",
   Unbekannt: "#5a6270",
 };
 
@@ -1877,6 +1949,7 @@ positioniereWelle();
 // noch, während die Seite tatsächlich sichtbar ist; beim Wiederöffnen
 // sofortiger Refresh, danach im festgelegten Takt (AKTUALISIERUNG_SEKUNDEN).
 let pollingIntervall = null;
+zeigeGlobalenModusSchalter(); // sofort sichtbar, noch bevor der erste Fetch zurückkommt
 
 function starteNormalesPolling() {
   if (pollingIntervall) return; // läuft schon
