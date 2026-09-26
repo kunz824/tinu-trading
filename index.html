@@ -497,13 +497,9 @@
 <body>
 
 <main>
-  <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
-       style="margin: 10px 12px 2px; display:flex; justify-content:center;"></div>
-  <p id="globalModusLeer" class="kreisdiagramm-leer" style="display:none; margin: 0 12px 8px;">
-    Noch keine Live-Daten — der Live-Koordinator-Prozess läuft entweder noch nicht, oder es ist noch keine
-    Position/kein Zyklus im Real-Konto gelaufen.
-  </p>
   <section id="register-kontostand" class="register aktiv">
+    <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
+         style="margin: 4px 0 10px; display:flex; justify-content:center;"></div>
     <div class="stats-reihe">
       <div class="stat">
         <p class="label">Kontostand</p>
@@ -1109,6 +1105,16 @@ async function ladeStatus() {
     });
     if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
     letztesVollDokument = (await antwort.json()).record || {};
+    // Rückwärtskompatibilität (2026-09-26): solange der Koordinator noch
+    // NICHT auf den neuen Demo/Live-fähigen Code umgestellt ist, schreibt
+    // er weiterhin die ALTE, flache Struktur (Felder direkt im Dokument,
+    // kein "demo"/"live"-Zweig). Ohne diesen Fallback würde die App dann
+    // fälschlich "keine Daten" für BEIDE Modi zeigen. Erkennung: weder
+    // "demo" noch "live" vorhanden, aber ein bekanntes Status-Feld
+    // (zeitstempel) direkt im Dokument -> ganzes Dokument gilt als "demo".
+    if (!letztesVollDokument.demo && !letztesVollDokument.live && letztesVollDokument.zeitstempel) {
+      letztesVollDokument = { demo: letztesVollDokument };
+    }
     zeigeGlobalenModusSchalter();
     zeigeStatus(letztesVollDokument[MODUS_AKTUELL] || null);
   } catch (fehler) {
@@ -1157,9 +1163,7 @@ function pruefeVerbindungsAlter() {
 setInterval(pruefeVerbindungsAlter, 30000); // tickt unabhängig vom Polling weiter
 
 function zeigeStatus(daten) {
-  const leerHinweis = document.getElementById("globalModusLeer");
   if (!daten) {
-    leerHinweis.style.display = "block";
     document.getElementById("standZeit").textContent = "–";
     document.getElementById("kontostand").textContent = "–";
     for (const id of ["tagesPnl", "wochenDurchschnitt", "wochenPnl", "monatsPnl", "offeneSumme"]) {
@@ -1174,7 +1178,6 @@ function zeigeStatus(daten) {
     zeigeNachrichten([]);
     return;
   }
-  leerHinweis.style.display = "none";
 
   const zeit = new Date(daten.zeitstempel).toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
   document.getElementById("standZeit").textContent = zeit;
