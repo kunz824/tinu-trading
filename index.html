@@ -367,6 +367,48 @@
   .schieber input:checked + .schieber-optik::before { transform: translateX(16px); }
   .schieber input:disabled + .schieber-optik { opacity: 0.4; cursor: default; }
 
+  /* ── System-Status-Register (2026-09-27 ergänzt) ──────────────────── */
+  .system-status-karte {
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px 16px;
+    margin-bottom: 12px;
+  }
+  .system-status-karte h3 {
+    font-size: 14.5px;
+    font-weight: 600;
+    margin: 0 0 4px;
+    color: var(--text);
+  }
+  .system-status-zeile {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 9px 0;
+  }
+  .system-status-zeile + .system-status-zeile {
+    border-top: 1px solid var(--border);
+  }
+  .system-status-links {
+    display: flex;
+    align-items: center;
+    font-size: 13.5px;
+    gap: 8px;
+    min-width: 0;
+  }
+  .system-status-text { color: var(--text-dim); font-size: 12px; }
+  .status-punkt {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .status-punkt.gruen { background: var(--pos); box-shadow: 0 0 6px var(--pos); }
+  .status-punkt.rot   { background: var(--neg); box-shadow: 0 0 6px var(--neg); }
+  .status-punkt.grau  { background: #5a6270; }
+
   .pos { color: var(--pos); }
   .neg { color: var(--neg); }
 
@@ -507,8 +549,6 @@
 
 <main>
   <section id="register-kontostand" class="register aktiv">
-    <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
-         style="margin: 4px 0 10px; display:flex; justify-content:center;"></div>
     <div class="stats-reihe">
       <div class="stat">
         <p class="label">Kontostand</p>
@@ -708,6 +748,19 @@
     </div>
     <p class="kreisdiagramm-leer" id="kontoTabelleLeer" style="display:none;">Noch keine Bewegungen erfasst.</p>
   </section>
+
+  <section id="register-status" class="register">
+    <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
+         style="margin: 4px 0 14px; display:flex; justify-content:center;"></div>
+    <p style="color:var(--text-dim); font-size:12.5px; margin: 0 0 16px;">
+      Dieser Schalter bestimmt, welcher Datensatz (Demo/Live) in den anderen
+      Registern angezeigt wird — reine Anzeigefunktion. Die Status- und
+      Pause-Übersicht unten zeigt IMMER beide gleichzeitig, unabhängig von
+      der Schalterstellung.
+    </p>
+    <h2>System-Status</h2>
+    <div id="systemStatusListe"></div>
+  </section>
 </main>
 
 <nav id="tabBar">
@@ -738,6 +791,10 @@
   <button class="tab-btn" data-register="konto">
     <span class="tab-icon">🏦</span>
     <span class="tab-label">Konto</span>
+  </button>
+  <button class="tab-btn" data-register="status">
+    <span class="tab-icon">🎛️</span>
+    <span class="tab-label">Status</span>
   </button>
 </nav>
 
@@ -869,12 +926,12 @@ async function schliesseTradeUeberSchieber(ticket, schieberEl) {
   }
 }
 
-async function pauseUmschalten(system, aktiv, schieberEl) {
+async function pauseUmschalten(system, modus, aktiv, schieberEl) {
   schieberEl.disabled = true;
   try {
     await sendeBefehl(inhalt => {
-      inhalt.pausiert[MODUS_AKTUELL] = inhalt.pausiert[MODUS_AKTUELL] || {};
-      inhalt.pausiert[MODUS_AKTUELL][system] = aktiv;
+      inhalt.pausiert[modus] = inhalt.pausiert[modus] || {};
+      inhalt.pausiert[modus][system] = aktiv;
     });
     starteBurstPolling();
   } catch (fehler) {
@@ -1126,6 +1183,7 @@ async function ladeStatus() {
     }
     zeigeGlobalenModusSchalter();
     zeigeStatus(letztesVollDokument[MODUS_AKTUELL] || null);
+    zeigeSystemStatusUebersicht();
   } catch (fehler) {
     document.getElementById("standZeit").textContent = "⚠ Offline";
     console.error(fehler);
@@ -1293,7 +1351,7 @@ function zeigeStatus(daten) {
     if (system !== "Unbekannt") {
       const checkbox = zeile.querySelector("input");
       checkbox.addEventListener("change", () => {
-        pauseUmschalten(system, checkbox.checked, checkbox);
+        pauseUmschalten(system, MODUS_AKTUELL, checkbox.checked, checkbox);
       });
     }
     systemListe.appendChild(zeile);
@@ -1508,6 +1566,76 @@ function zeigeGlobalenModusSchalter() {
       }
     });
     container.appendChild(btn);
+  }
+}
+
+// ── System-Status-Register (2026-09-27 ergänzt) ──────────────────────────
+// Zeigt für jedes der fünf Systeme BEIDE Modi (Demo + Live) gleichzeitig,
+// unabhängig von MODUS_AKTUELL/globalModusSchalter (der bleibt reine
+// Anzeigefunktion für die ANDEREN Register). Grün = EA schreibt noch
+// aktuelle Daten UND nicht pausiert; Rot = pausiert oder EA-Watchdog
+// meldet Stillstand; Grau = für diesen Modus (meist: Live) noch gar
+// nicht eingerichtet — kein Prozess, den man pausieren könnte.
+const SYSTEME_FUER_STATUS_REGISTER = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
+
+function zeigeSystemStatusUebersicht() {
+  const container = document.getElementById("systemStatusListe");
+  if (!container) return;
+  container.innerHTML = "";
+  const voll = letztesVollDokument || {};
+
+  for (const system of SYSTEME_FUER_STATUS_REGISTER) {
+    const karte = document.createElement("div");
+    karte.className = "system-status-karte";
+    const titel = document.createElement("h3");
+    titel.textContent = system;
+    karte.appendChild(titel);
+
+    for (const [modus, label] of [["demo", "🎮 Demo"], ["live", "💰 Live"]]) {
+      const daten = voll[modus];
+      const pausiertObjekt = (daten || {}).pausiert;
+      const eingerichtet = !!(pausiertObjekt && Object.prototype.hasOwnProperty.call(pausiertObjekt, system));
+
+      let punktKlasse, statusText, deaktiviert, pausiertAktuell;
+      if (!eingerichtet) {
+        punktKlasse = "grau";
+        statusText = "nicht eingerichtet";
+        deaktiviert = true;
+        pausiertAktuell = false;
+      } else {
+        pausiertAktuell = !!pausiertObjekt[system];
+        // ea_aktiv_je_system erst seit 2026-09-27 vorhanden -- fehlt das
+        // Feld (älterer Koordinator-Stand), wird "aktiv" angenommen statt
+        // faelschlich rot zu zeigen.
+        const eaAktivFeld = (daten.ea_aktiv_je_system || {})[system];
+        const eaAktiv = eaAktivFeld !== false;
+        const alsGanzesAktiv = eaAktiv && !pausiertAktuell;
+        punktKlasse = alsGanzesAktiv ? "gruen" : "rot";
+        statusText = pausiertAktuell ? "pausiert" : (eaAktiv ? "aktiv" : "inaktiv");
+        deaktiviert = false;
+      }
+
+      const zeile = document.createElement("div");
+      zeile.className = "system-status-zeile";
+      zeile.innerHTML = `
+        <span class="system-status-links">
+          <span class="status-punkt ${punktKlasse}"></span>
+          ${label}<span class="system-status-text">${statusText}</span>
+        </span>
+        <label class="schieber" title="${label} pausieren">
+          <input type="checkbox" ${pausiertAktuell ? "checked" : ""} ${deaktiviert ? "disabled" : ""}>
+          <span class="schieber-optik"></span>
+        </label>
+      `;
+      if (!deaktiviert) {
+        const checkbox = zeile.querySelector("input");
+        checkbox.addEventListener("change", () => {
+          pauseUmschalten(system, modus, checkbox.checked, checkbox);
+        });
+      }
+      karte.appendChild(zeile);
+    }
+    container.appendChild(karte);
   }
 }
 
@@ -1963,6 +2091,7 @@ positioniereWelle();
 // sofortiger Refresh, danach im festgelegten Takt (AKTUALISIERUNG_SEKUNDEN).
 let pollingIntervall = null;
 zeigeGlobalenModusSchalter(); // sofort sichtbar, noch bevor der erste Fetch zurückkommt
+zeigeSystemStatusUebersicht(); // dito -- zeigt initial "nicht eingerichtet" (grau), bis Daten da sind
 
 function starteNormalesPolling() {
   if (pollingIntervall) return; // läuft schon
