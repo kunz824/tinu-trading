@@ -912,9 +912,23 @@ async function sendeBefehl(mutiere) {
     CopyTradingPlatinum: false, TinuAgents: false, TinuRobot: false,
   };
   inhalt.pausiert.live = inhalt.pausiert.live || { CopyTrading: false };
-  inhalt.konto_bewegungen = inhalt.konto_bewegungen || {};
-  inhalt.konto_bewegungen.demo = inhalt.konto_bewegungen.demo || [];
-  inhalt.konto_bewegungen.live = inhalt.konto_bewegungen.live || [];
+  // 2026-09-27 BUGFIX: "inhalt.konto_bewegungen || {}" beliess ein NOCH
+  // ALTES, flaches Array (von vor der Demo/Live-Verschachtelung) einfach
+  // als Array (truthy) -- die anschliessend angehängten .demo/.live-
+  // Eigenschaften landeten dann zwar im Objekt, wurden aber von
+  // JSON.stringify() auf einem Array STILLSCHWEIGEND VERWORFEN (Arrays
+  // serialisieren nur ihre Index-Elemente) -- jede neue Konto-Bewegung
+  // ging dadurch beim Schreiben spurlos verloren, ohne Fehlermeldung.
+  // Jetzt: ein Array wird explizit ins neue Format migriert (als Demo-
+  // Historie übernommen, Live startet leer), statt es unverändert zu
+  // belassen.
+  if (Array.isArray(inhalt.konto_bewegungen)) {
+    inhalt.konto_bewegungen = { demo: inhalt.konto_bewegungen, live: [] };
+  } else {
+    inhalt.konto_bewegungen = inhalt.konto_bewegungen || {};
+    inhalt.konto_bewegungen.demo = inhalt.konto_bewegungen.demo || [];
+    inhalt.konto_bewegungen.live = inhalt.konto_bewegungen.live || [];
+  }
   inhalt.pin = BEFEHLE_PIN;
 
   mutiere(inhalt);
