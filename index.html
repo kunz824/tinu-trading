@@ -428,13 +428,29 @@
   /* Demo/Live-Hauptschalter +50% ggü. ursprünglicher Grösse laut Vorgabe --
      eigens skaliert (NICHT die Basisklasse .modus-umschalter selbst, die
      auch der Tag/Woche-Schalter in Dashboard/Ergebnisse nutzt und
-     unveraendert bleiben soll). */
+     unveraendert bleiben soll). 27.09.2026: von einer gemeinsamen Pille
+     auf zwei GLEICH GROSSE, EIGENSTÄNDIGE Pillen mit Zwischenraum
+     umgestellt (modernerer Look, nicht mehr randständig). */
+  .modus-umschalter-global {
+    background: none;
+    border: none;
+    padding: 0;
+    gap: 14px;
+  }
   .modus-umschalter-global button {
     font-size: 18px;
     padding: 7.5px 18px;
     border-radius: 24px;
+    flex: 1 1 0;
+    max-width: 150px;
+    background: var(--bg-panel);
+    border: 1px solid var(--border);
+    text-align: center;
   }
-  .modus-umschalter-global { border-radius: 27px; }
+  .modus-umschalter-global button.aktiv {
+    background: #5a6272;
+    border-color: #5a6272;
+  }
 
   .pos { color: var(--pos); }
   .neg { color: var(--neg); }
@@ -579,6 +595,7 @@
 
 <main>
   <section id="register-status" class="register aktiv">
+    <h2 style="text-align:center;">Ansicht</h2>
     <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
          style="margin: 4px 0 14px; display:flex; justify-content:center;"></div>
     <h2>System-Status</h2>
@@ -1581,6 +1598,7 @@ function zeigeGlobalenModusSchalter() {
       MODUS_AKTUELL = wert;
       zeigeGlobalenModusSchalter();
       zeigeStatus((letztesVollDokument || {})[MODUS_AKTUELL] || null);
+      zeigeSystemStatusUebersicht();
       // Konto-Bewegungen hängen ebenfalls vom Modus ab -- bei
       // vorhandenem Cache sofort neu anzeigen, sonst frisch laden.
       if (letzteKontoBewegungenDokument) {
@@ -1592,13 +1610,13 @@ function zeigeGlobalenModusSchalter() {
   }
 }
 
-// ── System-Status-Register (2026-09-27 ergänzt) ──────────────────────────
-// Zeigt für jedes der fünf Systeme BEIDE Modi (Demo + Live) gleichzeitig,
-// unabhängig von MODUS_AKTUELL/globalModusSchalter (der bleibt reine
-// Anzeigefunktion für die ANDEREN Register). Grün = EA schreibt noch
-// aktuelle Daten UND nicht pausiert; Rot = pausiert oder EA-Watchdog
-// meldet Stillstand; Grau = für diesen Modus (meist: Live) noch gar
-// nicht eingerichtet — kein Prozess, den man pausieren könnte.
+// ── System-Status-Register (2026-09-27 ergänzt, 27.09.2026 umgebaut) ─────
+// Zeigt für jedes der fünf Systeme NUR den gerade am oberen Schalter
+// gewählten Modus (Demo ODER Live) — der Schalter steuert jetzt ALLES,
+// nicht mehr nur die anderen Register. Grün = Herzschlag + Python-Prozess
+// aktuell UND nicht pausiert; Rot = pausiert oder eines von beiden meldet
+// Stillstand; Grau = für diesen Modus (meist: Live) noch gar nicht
+// eingerichtet — kein Prozess, den man pausieren könnte.
 const SYSTEME_FUER_STATUS_REGISTER = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
 
 function zeigeSystemStatusUebersicht() {
@@ -1606,65 +1624,65 @@ function zeigeSystemStatusUebersicht() {
   if (!container) return;
   container.innerHTML = "";
   const voll = letztesVollDokument || {};
+  const modus = MODUS_AKTUELL;
+  const label = modus === "demo" ? "🎮 Demo" : "💰 Live";
 
   for (const system of SYSTEME_FUER_STATUS_REGISTER) {
+    const daten = voll[modus];
+    const pausiertObjekt = (daten || {}).pausiert;
+    // "eingerichtet" bewusst über positionen_je_system geprüft, nicht über
+    // pausiertObjekt: Letzteres kommt aus einer lokalen Datei, die bei
+    // älterem Stand nicht zwingend alle fünf Systeme als Schlüssel enthält
+    // (führte zu fälschlich "nicht eingerichtet"/inaktiv für tatsächlich
+    // laufende Systeme). positionen_je_system wird vom Koordinator IMMER
+    // für jedes in MAGIC_SYSTEME_JE_MODUS gelistete System befüllt, auch
+    // mit 0 offenen Positionen — zuverlässigeres Signal.
+    const eingerichtet = !!(daten && Object.prototype.hasOwnProperty.call(daten.positionen_je_system || {}, system));
+
+    let punktKlasse, statusText, deaktiviert, pausiertAktuell;
+    if (!eingerichtet) {
+      punktKlasse = "grau";
+      statusText = "nicht eingerichtet";
+      deaktiviert = true;
+      pausiertAktuell = false;
+    } else {
+      pausiertAktuell = !!(pausiertObjekt || {})[system];
+      // ea_aktiv_je_system erst seit 2026-09-27 vorhanden -- fehlt das
+      // Feld (älterer Koordinator-Stand), wird "aktiv" angenommen statt
+      // faelschlich rot zu zeigen.
+      const eaAktivFeld = (daten.ea_aktiv_je_system || {})[system];
+      const eaAktiv = eaAktivFeld !== false;
+      const alsGanzesAktiv = eaAktiv && !pausiertAktuell;
+      punktKlasse = alsGanzesAktiv ? "gruen" : "rot";
+      statusText = pausiertAktuell ? "pausiert" : (eaAktiv ? "aktiv" : "inaktiv");
+      deaktiviert = false;
+    }
+
     const karte = document.createElement("div");
     karte.className = "system-status-karte";
     const titel = document.createElement("h3");
     titel.textContent = system;
     karte.appendChild(titel);
 
-    for (const [modus, label] of [["demo", "🎮 Demo"], ["live", "💰 Live"]]) {
-      const daten = voll[modus];
-      const pausiertObjekt = (daten || {}).pausiert;
-      // "eingerichtet" bewusst über positionen_je_system geprüft, nicht über
-      // pausiertObjekt: Letzteres kommt aus einer lokalen Datei, die bei
-      // älterem Stand nicht zwingend alle fünf Systeme als Schlüssel enthält
-      // (führte zu fälschlich "nicht eingerichtet"/inaktiv für tatsächlich
-      // laufende Systeme). positionen_je_system wird vom Koordinator IMMER
-      // für jedes in MAGIC_SYSTEME_JE_MODUS gelistete System befüllt, auch
-      // mit 0 offenen Positionen — zuverlässigeres Signal.
-      const eingerichtet = !!(daten && Object.prototype.hasOwnProperty.call(daten.positionen_je_system || {}, system));
-
-      let punktKlasse, statusText, deaktiviert, pausiertAktuell;
-      if (!eingerichtet) {
-        punktKlasse = "grau";
-        statusText = "nicht eingerichtet";
-        deaktiviert = true;
-        pausiertAktuell = false;
-      } else {
-        pausiertAktuell = !!(pausiertObjekt || {})[system];
-        // ea_aktiv_je_system erst seit 2026-09-27 vorhanden -- fehlt das
-        // Feld (älterer Koordinator-Stand), wird "aktiv" angenommen statt
-        // faelschlich rot zu zeigen.
-        const eaAktivFeld = (daten.ea_aktiv_je_system || {})[system];
-        const eaAktiv = eaAktivFeld !== false;
-        const alsGanzesAktiv = eaAktiv && !pausiertAktuell;
-        punktKlasse = alsGanzesAktiv ? "gruen" : "rot";
-        statusText = pausiertAktuell ? "pausiert" : (eaAktiv ? "aktiv" : "inaktiv");
-        deaktiviert = false;
-      }
-
-      const zeile = document.createElement("div");
-      zeile.className = "system-status-zeile";
-      zeile.innerHTML = `
-        <span class="system-status-links">
-          <span class="status-punkt ${punktKlasse}"></span>
-          ${label}<span class="system-status-text ${punktKlasse}">${statusText}</span>
-        </span>
-        <label class="schieber" title="${label} pausieren">
-          <input type="checkbox" ${pausiertAktuell ? "checked" : ""} ${deaktiviert ? "disabled" : ""}>
-          <span class="schieber-optik"></span>
-        </label>
-      `;
-      if (!deaktiviert) {
-        const checkbox = zeile.querySelector("input");
-        checkbox.addEventListener("change", () => {
-          pauseUmschalten(system, modus, checkbox.checked, checkbox);
-        });
-      }
-      karte.appendChild(zeile);
+    const zeile = document.createElement("div");
+    zeile.className = "system-status-zeile";
+    zeile.innerHTML = `
+      <span class="system-status-links">
+        <span class="status-punkt ${punktKlasse}"></span>
+        ${label}<span class="system-status-text ${punktKlasse}">${statusText}</span>
+      </span>
+      <label class="schieber" title="${label} pausieren">
+        <input type="checkbox" ${pausiertAktuell ? "checked" : ""} ${deaktiviert ? "disabled" : ""}>
+        <span class="schieber-optik"></span>
+      </label>
+    `;
+    if (!deaktiviert) {
+      const checkbox = zeile.querySelector("input");
+      checkbox.addEventListener("change", () => {
+        pauseUmschalten(system, modus, checkbox.checked, checkbox);
+      });
     }
+    karte.appendChild(zeile);
     container.appendChild(karte);
   }
 }
