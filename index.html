@@ -371,21 +371,21 @@
   .system-status-karte {
     background: var(--bg-panel);
     border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px 16px;
-    margin-bottom: 12px;
+    border-radius: 7px;
+    padding: 6px 8px;
+    margin-bottom: 6px;
   }
   .system-status-karte h3 {
-    font-size: 14.5px;
+    font-size: 7px;
     font-weight: 600;
-    margin: 0 0 4px;
+    margin: 0 0 2px;
     color: var(--text);
   }
   .system-status-zeile {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 9px 0;
+    padding: 4.5px 0;
   }
   .system-status-zeile + .system-status-zeile {
     border-top: 1px solid var(--border);
@@ -393,21 +393,37 @@
   .system-status-links {
     display: flex;
     align-items: center;
-    font-size: 13.5px;
-    gap: 8px;
+    font-size: 7px;
+    gap: 4px;
     min-width: 0;
   }
-  .system-status-text { color: var(--text-dim); font-size: 12px; }
+  .system-status-text { color: var(--text-dim); font-size: 6px; }
   .status-punkt {
     display: inline-block;
-    width: 10px;
-    height: 10px;
+    width: 5px;
+    height: 5px;
     border-radius: 50%;
     flex-shrink: 0;
   }
   .status-punkt.gruen { background: var(--pos); box-shadow: 0 0 6px var(--pos); }
   .status-punkt.rot   { background: var(--neg); box-shadow: 0 0 6px var(--neg); }
   .status-punkt.grau  { background: #5a6270; }
+  /* -50% ggü. ursprünglicher Grösse laut Vorgabe -- eigener Scale-Faktor
+     NUR hier, damit die Schieber an anderer Stelle (Handel-Register,
+     Konto-Löschen) unberührt bleiben (teilen sich .schieber/.schieber-optik
+     als Basisklasse, dort normalerweise scale(2)). */
+  .system-status-zeile .schieber { transform: scale(1); margin-right: 2px; }
+
+  /* Demo/Live-Hauptschalter +50% ggü. ursprünglicher Grösse laut Vorgabe --
+     eigens skaliert (NICHT die Basisklasse .modus-umschalter selbst, die
+     auch der Tag/Woche-Schalter in Dashboard/Ergebnisse nutzt und
+     unveraendert bleiben soll). */
+  .modus-umschalter-global button {
+    font-size: 18px;
+    padding: 7.5px 18px;
+    border-radius: 24px;
+  }
+  .modus-umschalter-global { border-radius: 27px; }
 
   .pos { color: var(--pos); }
   .neg { color: var(--neg); }
@@ -548,7 +564,19 @@
 <body>
 
 <main>
-  <section id="register-kontostand" class="register aktiv">
+  <section id="register-status" class="register aktiv">
+    <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
+         style="margin: 4px 0 14px; display:flex; justify-content:center;"></div>
+    <p style="color:var(--text-dim); font-size:12.5px; margin: 0 0 16px;">
+      Dieser Schalter bestimmt, welcher Datensatz (Demo/Live) in den anderen
+      Registern angezeigt wird — reine Anzeigefunktion. Die Status- und
+      Pause-Übersicht unten zeigt IMMER beide gleichzeitig, unabhängig von
+      der Schalterstellung.
+    </p>
+    <h2>System-Status</h2>
+    <div id="systemStatusListe"></div>
+  </section>
+  <section id="register-kontostand" class="register">
     <div class="stats-reihe">
       <div class="stat">
         <p class="label">Kontostand</p>
@@ -748,19 +776,6 @@
     </div>
     <p class="kreisdiagramm-leer" id="kontoTabelleLeer" style="display:none;">Noch keine Bewegungen erfasst.</p>
   </section>
-
-  <section id="register-status" class="register">
-    <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
-         style="margin: 4px 0 14px; display:flex; justify-content:center;"></div>
-    <p style="color:var(--text-dim); font-size:12.5px; margin: 0 0 16px;">
-      Dieser Schalter bestimmt, welcher Datensatz (Demo/Live) in den anderen
-      Registern angezeigt wird — reine Anzeigefunktion. Die Status- und
-      Pause-Übersicht unten zeigt IMMER beide gleichzeitig, unabhängig von
-      der Schalterstellung.
-    </p>
-    <h2>System-Status</h2>
-    <div id="systemStatusListe"></div>
-  </section>
 </main>
 
 <nav id="tabBar">
@@ -769,7 +784,11 @@
   </svg>
   <span class="tab-welle" id="tabWelle"></span>
   <span class="stand-anzeige" id="standZeit">–</span>
-  <button class="tab-btn aktiv" data-register="kontostand">
+  <button class="tab-btn aktiv" data-register="status">
+    <span class="tab-icon">🎛️</span>
+    <span class="tab-label">Status</span>
+  </button>
+  <button class="tab-btn" data-register="kontostand">
     <span class="tab-icon">📊</span>
     <span class="tab-label">Dashboard</span>
   </button>
@@ -791,10 +810,6 @@
   <button class="tab-btn" data-register="konto">
     <span class="tab-icon">🏦</span>
     <span class="tab-label">Konto</span>
-  </button>
-  <button class="tab-btn" data-register="status">
-    <span class="tab-icon">🎛️</span>
-    <span class="tab-label">Status</span>
   </button>
 </nav>
 
@@ -1594,7 +1609,14 @@ function zeigeSystemStatusUebersicht() {
     for (const [modus, label] of [["demo", "🎮 Demo"], ["live", "💰 Live"]]) {
       const daten = voll[modus];
       const pausiertObjekt = (daten || {}).pausiert;
-      const eingerichtet = !!(pausiertObjekt && Object.prototype.hasOwnProperty.call(pausiertObjekt, system));
+      // "eingerichtet" bewusst über positionen_je_system geprüft, nicht über
+      // pausiertObjekt: Letzteres kommt aus einer lokalen Datei, die bei
+      // älterem Stand nicht zwingend alle fünf Systeme als Schlüssel enthält
+      // (führte zu fälschlich "nicht eingerichtet"/inaktiv für tatsächlich
+      // laufende Systeme). positionen_je_system wird vom Koordinator IMMER
+      // für jedes in MAGIC_SYSTEME_JE_MODUS gelistete System befüllt, auch
+      // mit 0 offenen Positionen — zuverlässigeres Signal.
+      const eingerichtet = !!(daten && Object.prototype.hasOwnProperty.call(daten.positionen_je_system || {}, system));
 
       let punktKlasse, statusText, deaktiviert, pausiertAktuell;
       if (!eingerichtet) {
@@ -1603,7 +1625,7 @@ function zeigeSystemStatusUebersicht() {
         deaktiviert = true;
         pausiertAktuell = false;
       } else {
-        pausiertAktuell = !!pausiertObjekt[system];
+        pausiertAktuell = !!(pausiertObjekt || {})[system];
         // ea_aktiv_je_system erst seit 2026-09-27 vorhanden -- fehlt das
         // Feld (älterer Koordinator-Stand), wird "aktiv" angenommen statt
         // faelschlich rot zu zeigen.
