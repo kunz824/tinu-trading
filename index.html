@@ -323,7 +323,6 @@
     background: var(--bg-panel);
     padding: 13px 16px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
     gap: 12px;
   }
@@ -334,7 +333,8 @@
     font-weight: 600;
     font-size: 14px;
   }
-  .system-rechts { display: flex; align-items: center; gap: 12px; }
+  .system-rechts { display: flex; align-items: center; gap: 12px; flex: 1; }
+  .system-rechts .schieber { margin-left: auto; }
 
   .schieber {
     position: relative;
@@ -369,23 +369,25 @@
 
   /* ── System-Status-Register (2026-09-27 ergänzt) ──────────────────── */
   .system-status-karte {
-    background: var(--bg-panel);
+    background: linear-gradient(155deg, var(--bg-panel), #24272e);
     border: 1px solid var(--border);
-    border-radius: 9px;
-    padding: 8px 10px;
-    margin-bottom: 8px;
+    border-radius: 16px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+    box-shadow: 0 3px 10px rgba(0,0,0,0.22);
   }
   .system-status-karte h3 {
-    font-size: 9px;
-    font-weight: 600;
-    margin: 0 0 3px;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.2px;
+    margin: 0 0 4px;
     color: var(--text);
   }
   .system-status-zeile {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 6px 0;
+    padding: 10px 0;
   }
   .system-status-zeile + .system-status-zeile {
     border-top: 1px solid var(--border);
@@ -393,22 +395,34 @@
   .system-status-links {
     display: flex;
     align-items: center;
-    font-size: 9px;
-    gap: 5px;
+    font-size: 14px;
+    gap: 9px;
     min-width: 0;
   }
-  .system-status-text { color: var(--text-dim); font-size: 8px; }
+  .system-status-text {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 3px 9px;
+    border-radius: 20px;
+    background: rgba(255,255,255,0.06);
+    color: var(--text-dim);
+  }
+  .system-status-text.gruen { color: var(--pos); background: rgba(60, 200, 130, 0.14); }
+  .system-status-text.rot   { color: var(--neg); background: rgba(230, 90, 90, 0.14); }
+  .system-status-text.grau  { color: var(--text-dim); }
   .status-punkt {
     display: inline-block;
-    width: 6.5px;
-    height: 6.5px;
+    width: 9px;
+    height: 9px;
     border-radius: 50%;
     flex-shrink: 0;
   }
-  .status-punkt.gruen { background: var(--pos); box-shadow: 0 0 6px var(--pos); }
-  .status-punkt.rot   { background: var(--neg); box-shadow: 0 0 6px var(--neg); }
+  .status-punkt.gruen { background: var(--pos); box-shadow: 0 0 7px var(--pos); }
+  .status-punkt.rot   { background: var(--neg); box-shadow: 0 0 7px var(--neg); }
   .status-punkt.grau  { background: #5a6270; }
-  /* nochmals +30% ggü. der zuletzt gesetzten -50%-Grösse laut Vorgabe. */
+  /* Schiebergrösse bewusst unverändert gelassen (war bereits ok). */
   .system-status-zeile .schieber { transform: scale(1.3); margin-right: 3px; }
 
   /* Demo/Live-Hauptschalter +50% ggü. ursprünglicher Grösse laut Vorgabe --
@@ -442,9 +456,12 @@
      der Viewport) -- kleinere Schrift/Innenabstaende UND reduzierte
      Mindestbreite, zusammen mit den jetzt abgekuerzten Systemnamen
      spuerbar weniger horizontales Scrollen. */
-  .tabelle-kompakt table { min-width: 400px; font-size: 12px; }
-  .tabelle-kompakt th { padding: 8px 6px 6px; }
-  .tabelle-kompakt td { padding: 8px 6px; }
+  .tabelle-kompakt table { min-width: 340px; font-size: 10.5px; }
+  .tabelle-kompakt th { padding: 6px 4px 5px; }
+  .tabelle-kompakt td { padding: 6px 4px; }
+  /* Schliessen-Schieber in dieser Tabelle kleiner -- Basis-Skalierung
+     (scale(2), siehe .schieber) ist hier zu gross für die enge Spalte. */
+  .tabelle-kompakt .schieber { transform: scale(1.3); }
   .tabelle-scroll thead th {
     position: sticky;
     top: 0;
@@ -564,12 +581,6 @@
   <section id="register-status" class="register aktiv">
     <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
          style="margin: 4px 0 14px; display:flex; justify-content:center;"></div>
-    <p style="color:var(--text-dim); font-size:12.5px; margin: 0 0 16px;">
-      Dieser Schalter bestimmt, welcher Datensatz (Demo/Live) in den anderen
-      Registern angezeigt wird — reine Anzeigefunktion. Die Status- und
-      Pause-Übersicht unten zeigt IMMER beide gleichzeitig, unabhängig von
-      der Schalterstellung.
-    </p>
     <h2>System-Status</h2>
     <div id="systemStatusListe"></div>
   </section>
@@ -1639,7 +1650,7 @@ function zeigeSystemStatusUebersicht() {
       zeile.innerHTML = `
         <span class="system-status-links">
           <span class="status-punkt ${punktKlasse}"></span>
-          ${label}<span class="system-status-text">${statusText}</span>
+          ${label}<span class="system-status-text ${punktKlasse}">${statusText}</span>
         </span>
         <label class="schieber" title="${label} pausieren">
           <input type="checkbox" ${pausiertAktuell ? "checked" : ""} ${deaktiviert ? "disabled" : ""}>
