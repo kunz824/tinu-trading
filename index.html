@@ -478,6 +478,17 @@
   /* Schliessen-Schieber in dieser Tabelle kleiner -- Basis-Skalierung
      (scale(2), siehe .schieber) ist hier zu gross für die enge Spalte. */
   .tabelle-kompakt .schieber { transform: scale(1.3); }
+  /* 2026-09-29: seitenoptimierte Variante für "Handelshistorie" (Register
+     Ergebnisse) -- die Ergebnis-Spalte brach zuvor auf zwei Zeilen um
+     ("+0.37" / "EUR"), was jede Zeile fast doppelt so hoch machte wie
+     nötig. Kleinere Schrift/Innenabstände UND kein Zeilenumbruch mehr in
+     den Zellen -- dadurch passen ca. 6 weitere Zeilen ohne Scrollen in
+     dieselbe Kartenhöhe. Die vertikale Bildlaufleiste
+     (.tabelle-scroll-sehr-hoch, max-height 640px) bleibt unverändert
+     bestehen für alles, was trotzdem nicht mehr passt.*/
+  .tabelle-ergebnisse-kompakt table { font-size: 11px; }
+  .tabelle-ergebnisse-kompakt th { padding: 6px 6px 5px; }
+  .tabelle-ergebnisse-kompakt td { padding: 6px 6px; white-space: nowrap; }
   .tabelle-scroll thead th {
     position: sticky;
     top: 0;
@@ -677,7 +688,7 @@
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
     <p class="grund-legende">SL Stop-Loss · ML Max-Loss · TP Take-Profit · TR Trailing · TRS Trailing-Stop · TS Teilschliessung · CO Coach · T1 Momentum schwach</p>
-    <div class="tabelle-karte tabelle-scroll tabelle-scroll-sehr-hoch">
+    <div class="tabelle-karte tabelle-scroll tabelle-scroll-sehr-hoch tabelle-ergebnisse-kompakt">
     <table>
       <thead>
         <tr>
