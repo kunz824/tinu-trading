@@ -1866,6 +1866,7 @@ function zeigeHandelshistorie() {
     if (!ausgewaehltesDatum) {
       titel.textContent = "Handelshistorie";
       leer.style.display = "block";
+      passeErgebnisTabelleHoehe();
       return;
     }
     zeitraumTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
@@ -1898,7 +1899,45 @@ function zeigeHandelshistorie() {
     `;
     tabelle.appendChild(tr);
   }
+  // 2026-09-29: Höhe erst NACH dem Befüllen anpassen -- der Titeltext oben
+  // (z.B. "Handelshistorie — CopyTradingPlatinum (Woche gesamt)") ändert je
+  // nach Filter seine Länge/Zeilenzahl, was die Position der Tabellenkarte
+  // verschiebt. Siehe passeErgebnisTabelleHoehe() weiter unten.
+  passeErgebnisTabelleHoehe();
 }
+
+// 2026-09-29: Die Tabellenkarte in "Ergebnisse" hatte bisher eine feste
+// max-height (640px) -- auf kleinen/grossen Bildschirmen entweder zu viel
+// Leerraum vor der Tabbar oder zu wenig sichtbare Zeilen. Jetzt wird die
+// verfügbare Höhe LIVE aus der tatsächlichen Position der Karte und der
+// Tabbar-Höhe berechnet, sodass die Karte immer bis knapp über die Tabbar
+// reicht -- abhängig von Geräteschirm UND aktueller Titelzeilen-Länge.
+// WICHTIG wegen #register-ergebnisse { zoom: 0.7 }: getBoundingClientRect()
+// liefert bereits die GEZOOMTEN (echten Bildschirm-)Pixel, aber ein CSS-Wert,
+// den wir per JS auf ein Element INNERHALB des gezoomten Registers setzen,
+// wird von dort aus wieder in LOKALEN (ungezoomten) Einheiten interpretiert
+// -- deshalb hier durch den Zoomfaktor geteilt, sonst wäre die Karte real
+// nur 70% so hoch wie berechnet.
+function passeErgebnisTabelleHoehe() {
+  const karte = document.querySelector("#register-ergebnisse .tabelle-karte");
+  const tabBar = document.getElementById("tabBar");
+  const register = document.getElementById("register-ergebnisse");
+  if (!karte || !tabBar || !register) return;
+  if (!register.classList.contains("aktiv")) return;  // unsichtbar: Layout nicht verlässlich messbar
+
+  const zoomFaktor = parseFloat(getComputedStyle(register).zoom) || 1;
+  const kartenObenReal = karte.getBoundingClientRect().top;      // bereits in echten Bildschirm-Pixeln
+  const tabBarHoeheReal = tabBar.getBoundingClientRect().height;
+  const pufferReal = 16;  // etwas Luft zwischen Kartenrand und Tabbar
+
+  const verfuegbarReal = window.innerHeight - kartenObenReal - tabBarHoeheReal - pufferReal;
+  const verfuegbarLokal = verfuegbarReal / zoomFaktor;
+  karte.style.maxHeight = Math.max(200, verfuegbarLokal) + "px";
+}
+
+window.addEventListener("resize", passeErgebnisTabelleHoehe);
+window.addEventListener("orientationchange", passeErgebnisTabelleHoehe);
+
 
 // ── Kreisdiagramm: Ergebnisse eines Tages je System (reines SVG) ─────
 const SYSTEM_FARBEN = {
@@ -2149,6 +2188,7 @@ document.querySelectorAll("nav button").forEach(btn => {
     document.getElementById(`register-${btn.dataset.register}`).classList.add("aktiv");
     positioniereWelle();
     if (btn.dataset.register === "konto") ladeKontoBewegungen();
+    if (btn.dataset.register === "ergebnisse") passeErgebnisTabelleHoehe();
   });
 });
 
