@@ -615,7 +615,7 @@
   <section id="register-kontostand" class="register">
     <div class="stats-reihe">
       <div class="stat">
-        <p class="label">Kontostand</p>
+        <p class="label" title="Bleibt bei System-Filterauswahl immer gesamtkontobezogen -- ein MT5-Konto lässt sich nicht pro Handelsvariante aufteilen.">Kontostand</p>
         <p class="zahl" id="kontostand">–</p>
       </div>
       <div class="stat">
@@ -634,7 +634,7 @@
         <p class="zahl" id="wochenPnl">–</p>
       </div>
       <div class="stat">
-        <p class="label">Monats-PnL</p>
+        <p class="label" title="Bleibt bei System-Filterauswahl immer über alle Systeme -- kommt als fertige Summe vom Koordinator, noch nicht pro Handelsvariante aufgeschlüsselt.">Monats-PnL</p>
         <p class="zahl" id="monatsPnl">–</p>
       </div>
     </div>
@@ -1358,7 +1358,14 @@ function zeigeStatus(daten) {
   // Donuts: Tages-PnL = heutiger Eintrag aus wochenVerlauf (alle Systeme
   // summiert), Wochen-PnL = alle Einträge des 7-Tage-Fensters summiert.
   const heuteISO = new Date().toISOString().slice(0, 10);
-  const systemNamenPnl = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
+  // 2026-10-01 ergänzt (Martins Wunsch): Kacheln folgen jetzt demselben
+  // System-Filter wie die Kreisdiagramme (ausgewaehltesSystemDonut) — bei
+  // "Alle" (null) weiterhin alle fünf summiert, sonst nur das gewählte
+  // System. Nutzt dieselben, bereits pro System vorliegenden Daten
+  // (wochenVerlauf), kein Koordinator-Eingriff nötig.
+  const systemNamenPnl = ausgewaehltesSystemDonut
+    ? [ausgewaehltesSystemDonut]
+    : ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
   const heuteEintragPnl = wochenVerlauf.find(t => t.datum === heuteISO);
   const tagesPnlEcht = heuteEintragPnl
     ? systemNamenPnl.reduce((s, sys) => s + (heuteEintragPnl[sys] || 0), 0) : 0;
@@ -1399,7 +1406,12 @@ function zeigeStatus(daten) {
     if (system === "Unbekannt" && positionen.length === 0) continue;
 
     const summe = positionen.reduce((s, p) => s + p.profit, 0);
-    gesamtSumme += summe;
+    // 2026-10-01: "Offene Summe"-Kachel folgt dem Systemfilter wie die
+    // anderen Kacheln oben -- die Liste darunter (systemListe) zeigt
+    // bewusst weiterhin alle Systeme, nur die Summen-Kachel wird gefiltert.
+    if (!ausgewaehltesSystemDonut || system === ausgewaehltesSystemDonut) {
+      gesamtSumme += summe;
+    }
     const pausiertAktuell = (daten.pausiert || {})[system] || false;
     const zeile = document.createElement("div");
     zeile.className = "system-zeile";
@@ -1652,8 +1664,22 @@ function zeigeSystemStatusUebersicht() {
   const modus = MODUS_AKTUELL;
   const label = modus === "demo" ? "🎮 Demo" : "💰 Live";
 
+  // 2026-10-01 ergänzt: Bisher wurde das Alter von daten.zeitstempel hier
+  // nie geprüft — ein altes, eingefrorenes Dokument aus einem früheren
+  // Testlauf (z.B. Live, seither nicht mehr aktualisiert, weil kein
+  // Koordinator-Prozess mehr läuft) wurde unverändert als aktuell
+  // angezeigt, inkl. fälschlich "aktiv"/grün. Jetzt: dieselbe Schwelle wie
+  // die bestehende Verbindungs-Ausfall-Erkennung (VERBINDUNG_SCHWELLE_
+  // MINUTEN), konsistent mit dem Rest der App.
+  const datenRoh = voll[modus];
+  let zuAlt = false;
+  if (datenRoh && datenRoh.zeitstempel) {
+    const alterMin = (Date.now() - new Date(datenRoh.zeitstempel).getTime()) / 60000;
+    zuAlt = alterMin >= VERBINDUNG_SCHWELLE_MINUTEN;
+  }
+
   for (const system of SYSTEME_FUER_STATUS_REGISTER) {
-    const daten = voll[modus];
+    const daten = zuAlt ? null : datenRoh;
     const pausiertObjekt = (daten || {}).pausiert;
     // "eingerichtet" bewusst über positionen_je_system geprüft, nicht über
     // pausiertObjekt: Letzteres kommt aus einer lokalen Datei, die bei
@@ -1667,7 +1693,10 @@ function zeigeSystemStatusUebersicht() {
     let punktKlasse, statusText, deaktiviert, pausiertAktuell;
     if (!eingerichtet) {
       punktKlasse = "grau";
-      statusText = "nicht eingerichtet";
+      // 2026-10-01: unterscheidet jetzt "nie eingerichtet" von "war mal da,
+      // Daten aber zu alt" (zuAlt) -- zweites war bisher nicht erkennbar
+      // und sah optisch genauso aus wie "nicht eingerichtet".
+      statusText = zuAlt ? "nicht erreichbar (veraltet)" : "nicht eingerichtet";
       deaktiviert = true;
       pausiertAktuell = false;
     } else {
@@ -1748,6 +1777,13 @@ function zeigeDonutSystemFilter() {
       zeichneKreisdiagramm();
       zeichneGewinnrateDonut();
       zeigeHandelshistorie();
+      // 2026-10-01 ergänzt: Kacheln (Tages-/Wochen-PnL, Offene Summe etc.)
+      // folgen jetzt ebenfalls diesem Filter -- zeigeStatus() aus demselben
+      // gecachten Dokument neu aufrufen, damit sie sich sofort mit
+      // aktualisieren statt nur beim nächsten Polling-Zyklus.
+      if (letztesVollDokument) {
+        zeigeStatus(letztesVollDokument[MODUS_AKTUELL] || null);
+      }
     });
     filter.appendChild(chip);
   }
