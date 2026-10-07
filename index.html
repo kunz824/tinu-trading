@@ -323,6 +323,7 @@
     background: var(--bg-panel);
     padding: 13px 16px;
     display: flex;
+    justify-content: space-between;
     align-items: center;
     gap: 12px;
   }
@@ -333,8 +334,7 @@
     font-weight: 600;
     font-size: 14px;
   }
-  .system-rechts { display: flex; align-items: center; gap: 12px; flex: 1; }
-  .system-rechts .schieber { margin-left: auto; }
+  .system-rechts { display: flex; align-items: center; gap: 12px; }
 
   .schieber {
     position: relative;
@@ -367,91 +367,6 @@
   .schieber input:checked + .schieber-optik::before { transform: translateX(16px); }
   .schieber input:disabled + .schieber-optik { opacity: 0.4; cursor: default; }
 
-  /* ── System-Status-Register (2026-09-27 ergänzt) ──────────────────── */
-  .system-status-karte {
-    background: linear-gradient(155deg, var(--bg-panel), #24272e);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 14px 16px;
-    margin-bottom: 12px;
-    box-shadow: 0 3px 10px rgba(0,0,0,0.22);
-  }
-  .system-status-karte h3 {
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: 0.2px;
-    margin: 0 0 4px;
-    color: var(--text);
-  }
-  .system-status-zeile {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 0;
-  }
-  .system-status-zeile + .system-status-zeile {
-    border-top: 1px solid var(--border);
-  }
-  .system-status-links {
-    display: flex;
-    align-items: center;
-    font-size: 14px;
-    gap: 9px;
-    min-width: 0;
-  }
-  .system-status-text {
-    font-size: 10.5px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.4px;
-    padding: 3px 9px;
-    border-radius: 20px;
-    background: rgba(255,255,255,0.06);
-    color: var(--text-dim);
-  }
-  .system-status-text.gruen { color: var(--pos); background: rgba(60, 200, 130, 0.14); }
-  .system-status-text.rot   { color: var(--neg); background: rgba(230, 90, 90, 0.14); }
-  .system-status-text.grau  { color: var(--text-dim); }
-  .status-punkt {
-    display: inline-block;
-    width: 9px;
-    height: 9px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-  .status-punkt.gruen { background: var(--pos); box-shadow: 0 0 7px var(--pos); }
-  .status-punkt.rot   { background: var(--neg); box-shadow: 0 0 7px var(--neg); }
-  .status-punkt.grau  { background: #5a6270; }
-  /* Schiebergrösse bewusst unverändert gelassen (war bereits ok). */
-  .system-status-zeile .schieber { transform: scale(1.3); margin-right: 3px; }
-
-  /* Demo/Live-Hauptschalter +50% ggü. ursprünglicher Grösse laut Vorgabe --
-     eigens skaliert (NICHT die Basisklasse .modus-umschalter selbst, die
-     auch der Tag/Woche-Schalter in Dashboard/Ergebnisse nutzt und
-     unveraendert bleiben soll). 27.09.2026: von einer gemeinsamen Pille
-     auf zwei GLEICH GROSSE, EIGENSTÄNDIGE Pillen mit Zwischenraum
-     umgestellt (modernerer Look, nicht mehr randständig). */
-  .modus-umschalter-global {
-    background: none;
-    border: none;
-    padding: 0;
-    gap: 14px;
-  }
-  .modus-umschalter-global button {
-    font-size: 18px;
-    padding: 7.5px 18px;
-    border-radius: 24px;
-    flex: 1 1 0;
-    max-width: 150px;
-    background: var(--bg-panel);
-    border: 1px solid var(--border);
-    text-align: center;
-  }
-  .modus-umschalter-global button.aktiv {
-    background: #5a6272;
-    border-color: #5a6272;
-  }
-
   .pos { color: var(--pos); }
   .neg { color: var(--neg); }
 
@@ -466,29 +381,6 @@
     overflow-y: auto;
   }
   .tabelle-scroll-hoch { max-height: 480px; }
-  .tabelle-scroll-sehr-hoch { max-height: 640px; }
-  /* 2026-09-26: seitenoptimierte Variante fuer die Tabelle "Aktuelle
-     Trades" (9 Spalten, auf schmalen Phones bisher deutlich breiter als
-     der Viewport) -- kleinere Schrift/Innenabstaende UND reduzierte
-     Mindestbreite, zusammen mit den jetzt abgekuerzten Systemnamen
-     spuerbar weniger horizontales Scrollen. */
-  .tabelle-kompakt table { min-width: 340px; font-size: 10.5px; }
-  .tabelle-kompakt th { padding: 6px 4px 5px; }
-  .tabelle-kompakt td { padding: 6px 4px; }
-  /* Schliessen-Schieber in dieser Tabelle kleiner -- Basis-Skalierung
-     (scale(2), siehe .schieber) ist hier zu gross für die enge Spalte. */
-  .tabelle-kompakt .schieber { transform: scale(1.3); }
-  /* 2026-09-29: seitenoptimierte Variante für "Handelshistorie" (Register
-     Ergebnisse) -- die Ergebnis-Spalte brach zuvor auf zwei Zeilen um
-     ("+0.37" / "EUR"), was jede Zeile fast doppelt so hoch machte wie
-     nötig. Kleinere Schrift/Innenabstände UND kein Zeilenumbruch mehr in
-     den Zellen -- dadurch passen ca. 6 weitere Zeilen ohne Scrollen in
-     dieselbe Kartenhöhe. Die vertikale Bildlaufleiste
-     (.tabelle-scroll-sehr-hoch, max-height 640px) bleibt unverändert
-     bestehen für alles, was trotzdem nicht mehr passt.*/
-  .tabelle-ergebnisse-kompakt table { font-size: 11px; }
-  .tabelle-ergebnisse-kompakt th { padding: 6px 6px 5px; }
-  .tabelle-ergebnisse-kompakt td { padding: 6px 6px; white-space: nowrap; }
   .tabelle-scroll thead th {
     position: sticky;
     top: 0;
@@ -605,17 +497,10 @@
 <body>
 
 <main>
-  <section id="register-status" class="register aktiv">
-    <h2 style="text-align:center;">Ansicht</h2>
-    <div id="globalModusSchalter" class="modus-umschalter modus-umschalter-global"
-         style="margin: 4px 0 14px; display:flex; justify-content:center;"></div>
-    <h2>System-Status</h2>
-    <div id="systemStatusListe"></div>
-  </section>
-  <section id="register-kontostand" class="register">
+  <section id="register-kontostand" class="register aktiv">
     <div class="stats-reihe">
       <div class="stat">
-        <p class="label" title="Bleibt bei System-Filterauswahl immer gesamtkontobezogen -- ein MT5-Konto lässt sich nicht pro Handelsvariante aufteilen.">Kontostand</p>
+        <p class="label">Kontostand</p>
         <p class="zahl" id="kontostand">–</p>
       </div>
       <div class="stat">
@@ -634,7 +519,7 @@
         <p class="zahl" id="wochenPnl">–</p>
       </div>
       <div class="stat">
-        <p class="label" title="Bleibt bei System-Filterauswahl immer über alle Systeme -- kommt als fertige Summe vom Koordinator, noch nicht pro Handelsvariante aufgeschlüsselt.">Monats-PnL</p>
+        <p class="label">Monats-PnL</p>
         <p class="zahl" id="monatsPnl">–</p>
       </div>
     </div>
@@ -688,7 +573,7 @@
     <h2 id="handelshistorieTitel">Handelshistorie</h2>
     <p class="kreisdiagramm-leer" style="margin:-4px 0 10px;">Folgt dem Tag/Woche- und System-Filter aus dem Dashboard.</p>
     <p class="grund-legende">SL Stop-Loss · ML Max-Loss · TP Take-Profit · TR Trailing · TRS Trailing-Stop · TS Teilschliessung · CO Coach · T1 Momentum schwach</p>
-    <div class="tabelle-karte tabelle-scroll tabelle-scroll-sehr-hoch tabelle-ergebnisse-kompakt">
+    <div class="tabelle-karte tabelle-scroll">
     <table>
       <thead>
         <tr>
@@ -705,6 +590,22 @@
     </table>
     </div>
     <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
+
+    <h2 id="symbolTitel" style="margin-top:18px;">Ergebnis je Symbol</h2>
+    <div class="tabelle-karte tabelle-scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th class="zahl-spalte">Trades</th>
+          <th class="zahl-spalte">Gewinn&shy;rate</th>
+          <th class="zahl-spalte">Ergebnis</th>
+        </tr>
+      </thead>
+      <tbody id="symbolTabelle"></tbody>
+    </table>
+    </div>
+    <p class="kreisdiagramm-leer" id="symbolLeer" style="display:none;">Keine Trades im gewählten Zeitraum.</p>
   </section>
 
   <section id="register-trades" class="register">
@@ -719,7 +620,7 @@
     <div class="system-liste" id="systemListe"></div>
 
     <h2 style="margin-top:24px;">Aktuelle Trades</h2>
-    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch tabelle-kompakt">
+    <div class="tabelle-karte tabelle-scroll tabelle-scroll-hoch">
     <table>
       <thead>
         <tr>
@@ -820,11 +721,7 @@
   </svg>
   <span class="tab-welle" id="tabWelle"></span>
   <span class="stand-anzeige" id="standZeit">–</span>
-  <button class="tab-btn aktiv" data-register="status">
-    <span class="tab-icon">🎛️</span>
-    <span class="tab-label">Status</span>
-  </button>
-  <button class="tab-btn" data-register="kontostand">
+  <button class="tab-btn aktiv" data-register="kontostand">
     <span class="tab-icon">📊</span>
     <span class="tab-label">Dashboard</span>
   </button>
@@ -913,33 +810,11 @@ async function sendeBefehl(mutiere) {
   const inhalt = (await antwort.json()).record || {};
 
   inhalt.schliess_befehle = inhalt.schliess_befehle || [];
-  // 2026-09-26: nach Modus verschachtelt (Demo/Live) — verhindert, dass
-  // ein Pause-Klick oder eine Konto-Bewegung in der falschen Instanz
-  // landet. Live vorerst nur mit CopyTrading, da einziges real-
-  // vorbereitetes System (siehe Koordinator MAGIC_SYSTEME_JE_MODUS).
-  inhalt.pausiert = inhalt.pausiert || {};
-  inhalt.pausiert.demo = inhalt.pausiert.demo || {
+  inhalt.pausiert = inhalt.pausiert || {
     CopyTrading: false, CopyTradingEnhanced: false,
-    CopyTradingPlatinum: false, TinuAgents: false, TinuRobot: false,
+    CopyTradingPlatinum: false, TinuAgents: false,
   };
-  inhalt.pausiert.live = inhalt.pausiert.live || { CopyTrading: false };
-  // 2026-09-27 BUGFIX: "inhalt.konto_bewegungen || {}" beliess ein NOCH
-  // ALTES, flaches Array (von vor der Demo/Live-Verschachtelung) einfach
-  // als Array (truthy) -- die anschliessend angehängten .demo/.live-
-  // Eigenschaften landeten dann zwar im Objekt, wurden aber von
-  // JSON.stringify() auf einem Array STILLSCHWEIGEND VERWORFEN (Arrays
-  // serialisieren nur ihre Index-Elemente) -- jede neue Konto-Bewegung
-  // ging dadurch beim Schreiben spurlos verloren, ohne Fehlermeldung.
-  // Jetzt: ein Array wird explizit ins neue Format migriert (als Demo-
-  // Historie übernommen, Live startet leer), statt es unverändert zu
-  // belassen.
-  if (Array.isArray(inhalt.konto_bewegungen)) {
-    inhalt.konto_bewegungen = { demo: inhalt.konto_bewegungen, live: [] };
-  } else {
-    inhalt.konto_bewegungen = inhalt.konto_bewegungen || {};
-    inhalt.konto_bewegungen.demo = inhalt.konto_bewegungen.demo || [];
-    inhalt.konto_bewegungen.live = inhalt.konto_bewegungen.live || [];
-  }
+  inhalt.konto_bewegungen = inhalt.konto_bewegungen || [];
   inhalt.pin = BEFEHLE_PIN;
 
   mutiere(inhalt);
@@ -991,12 +866,11 @@ async function schliesseTradeUeberSchieber(ticket, schieberEl) {
   }
 }
 
-async function pauseUmschalten(system, modus, aktiv, schieberEl) {
+async function pauseUmschalten(system, aktiv, schieberEl) {
   schieberEl.disabled = true;
   try {
     await sendeBefehl(inhalt => {
-      inhalt.pausiert[modus] = inhalt.pausiert[modus] || {};
-      inhalt.pausiert[modus][system] = aktiv;
+      inhalt.pausiert[system] = aktiv;
     });
     starteBurstPolling();
   } catch (fehler) {
@@ -1013,7 +887,6 @@ async function pauseUmschalten(system, modus, aktiv, schieberEl) {
 // weiteres Feld in derselben JSON-Struktur, der Koordinator ignoriert es
 // (kennt nur schliess_befehle/pausiert), also unkritisch für ihn.
 let letzteKontoBewegungen = [];
-let letzteKontoBewegungenDokument = null; // Cache: kompletter Befehle-Bin-Inhalt, für instant Modus-Wechsel
 let kontoBearbeitungsIndex = null; // null = neue Bewegung, sonst Index der bearbeiteten
 
 async function ladeKontoBewegungen() {
@@ -1024,8 +897,7 @@ async function ladeKontoBewegungen() {
     });
     if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
     const inhalt = (await antwort.json()).record || {};
-    letzteKontoBewegungenDokument = inhalt;
-    letzteKontoBewegungen = (inhalt.konto_bewegungen || {})[MODUS_AKTUELL] || [];
+    letzteKontoBewegungen = inhalt.konto_bewegungen || [];
   } catch (fehler) {
     console.error("Konto-Bewegungen konnten nicht geladen werden:", fehler);
   }
@@ -1112,12 +984,12 @@ async function speichereKontoBewegung() {
       const neuerBetrag = einzahlung > 0 ? einzahlung : auszahlung;
       const index = kontoBearbeitungsIndex;
       await sendeBefehl(inhalt => {
-        inhalt.konto_bewegungen[MODUS_AKTUELL][index] = { datum, typ: neuerTyp, betrag: neuerBetrag };
+        inhalt.konto_bewegungen[index] = { datum, typ: neuerTyp, betrag: neuerBetrag };
       });
     } else {
       await sendeBefehl(inhalt => {
-        if (einzahlung > 0) inhalt.konto_bewegungen[MODUS_AKTUELL].push({ datum, typ: "einzahlung", betrag: einzahlung });
-        if (auszahlung > 0) inhalt.konto_bewegungen[MODUS_AKTUELL].push({ datum, typ: "auszahlung", betrag: auszahlung });
+        if (einzahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "einzahlung", betrag: einzahlung });
+        if (auszahlung > 0) inhalt.konto_bewegungen.push({ datum, typ: "auszahlung", betrag: auszahlung });
       });
     }
     bricheKontoBearbeitungAb();
@@ -1133,7 +1005,7 @@ async function loescheKontoBewegung(index) {
   if (!confirm("Diese Bewegung wirklich löschen?")) return;
   try {
     await sendeBefehl(inhalt => {
-      inhalt.konto_bewegungen[MODUS_AKTUELL].splice(index, 1);
+      inhalt.konto_bewegungen.splice(index, 1);
     });
     if (kontoBearbeitungsIndex === index) bricheKontoBearbeitungAb();
     await ladeKontoBewegungen();
@@ -1235,20 +1107,8 @@ async function ladeStatus() {
       cache: "no-store",
     });
     if (!antwort.ok) throw new Error(`HTTP ${antwort.status}`);
-    letztesVollDokument = (await antwort.json()).record || {};
-    // Rückwärtskompatibilität (2026-09-26): solange der Koordinator noch
-    // NICHT auf den neuen Demo/Live-fähigen Code umgestellt ist, schreibt
-    // er weiterhin die ALTE, flache Struktur (Felder direkt im Dokument,
-    // kein "demo"/"live"-Zweig). Ohne diesen Fallback würde die App dann
-    // fälschlich "keine Daten" für BEIDE Modi zeigen. Erkennung: weder
-    // "demo" noch "live" vorhanden, aber ein bekanntes Status-Feld
-    // (zeitstempel) direkt im Dokument -> ganzes Dokument gilt als "demo".
-    if (!letztesVollDokument.demo && !letztesVollDokument.live && letztesVollDokument.zeitstempel) {
-      letztesVollDokument = { demo: letztesVollDokument };
-    }
-    zeigeGlobalenModusSchalter();
-    zeigeStatus(letztesVollDokument[MODUS_AKTUELL] || null);
-    zeigeSystemStatusUebersicht();
+    const daten = (await antwort.json()).record;
+    zeigeStatus(daten);
   } catch (fehler) {
     document.getElementById("standZeit").textContent = "⚠ Offline";
     console.error(fehler);
@@ -1295,23 +1155,6 @@ function pruefeVerbindungsAlter() {
 setInterval(pruefeVerbindungsAlter, 30000); // tickt unabhängig vom Polling weiter
 
 function zeigeStatus(daten) {
-  if (!daten) {
-    document.getElementById("standZeit").textContent = "–";
-    document.getElementById("kontostand").textContent = "–";
-    for (const id of ["tagesPnl", "wochenDurchschnitt", "wochenPnl", "monatsPnl", "offeneSumme", "fcWoche", "fcMonat"]) {
-      document.getElementById(id).textContent = "–";
-      document.getElementById(id).classList.remove("pos", "neg");
-    }
-    document.getElementById("systemListe").innerHTML = "";
-    document.getElementById("tradesTabelle").innerHTML = "";
-    document.getElementById("tradesLeer").style.display = "block";
-    wochenVerlauf = [];
-    alleTradesDerWoche = [];
-    aktualisiereDiagramme();
-    zeigeNachrichten([]);
-    return;
-  }
-
   const zeit = new Date(daten.zeitstempel).toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" });
   document.getElementById("standZeit").textContent = zeit;
 
@@ -1358,14 +1201,7 @@ function zeigeStatus(daten) {
   // Donuts: Tages-PnL = heutiger Eintrag aus wochenVerlauf (alle Systeme
   // summiert), Wochen-PnL = alle Einträge des 7-Tage-Fensters summiert.
   const heuteISO = new Date().toISOString().slice(0, 10);
-  // 2026-10-01 ergänzt (Martins Wunsch): Kacheln folgen jetzt demselben
-  // System-Filter wie die Kreisdiagramme (ausgewaehltesSystemDonut) — bei
-  // "Alle" (null) weiterhin alle fünf summiert, sonst nur das gewählte
-  // System. Nutzt dieselben, bereits pro System vorliegenden Daten
-  // (wochenVerlauf), kein Koordinator-Eingriff nötig.
-  const systemNamenPnl = ausgewaehltesSystemDonut
-    ? [ausgewaehltesSystemDonut]
-    : ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
+  const systemNamenPnl = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
   const heuteEintragPnl = wochenVerlauf.find(t => t.datum === heuteISO);
   const tagesPnlEcht = heuteEintragPnl
     ? systemNamenPnl.reduce((s, sys) => s + (heuteEintragPnl[sys] || 0), 0) : 0;
@@ -1406,12 +1242,7 @@ function zeigeStatus(daten) {
     if (system === "Unbekannt" && positionen.length === 0) continue;
 
     const summe = positionen.reduce((s, p) => s + p.profit, 0);
-    // 2026-10-01: "Offene Summe"-Kachel folgt dem Systemfilter wie die
-    // anderen Kacheln oben -- die Liste darunter (systemListe) zeigt
-    // bewusst weiterhin alle Systeme, nur die Summen-Kachel wird gefiltert.
-    if (!ausgewaehltesSystemDonut || system === ausgewaehltesSystemDonut) {
-      gesamtSumme += summe;
-    }
+    gesamtSumme += summe;
     const pausiertAktuell = (daten.pausiert || {})[system] || false;
     const zeile = document.createElement("div");
     zeile.className = "system-zeile";
@@ -1428,7 +1259,7 @@ function zeigeStatus(daten) {
     if (system !== "Unbekannt") {
       const checkbox = zeile.querySelector("input");
       checkbox.addEventListener("change", () => {
-        pauseUmschalten(system, MODUS_AKTUELL, checkbox.checked, checkbox);
+        pauseUmschalten(system, checkbox.checked, checkbox);
       });
     }
     systemListe.appendChild(zeile);
@@ -1441,7 +1272,7 @@ function zeigeStatus(daten) {
       const richtungKlasse = p.richtung === "BUY" ? "richtung-buy" : "richtung-sell";
       const tr = document.createElement("tr");
       tr.innerHTML = `
-        <td>${SYSTEM_ABKUERZUNG[system] || system}</td>
+        <td>${system}</td>
         <td>${p.symbol}</td>
         <td class="${richtungKlasse}">${p.richtung}</td>
         <td class="zahl-spalte">${p.lot.toFixed(2)}</td>
@@ -1613,137 +1444,9 @@ let wochenVerlauf = [];
 let alleTradesDerWoche = [];
 let ausgewaehltesDatum = null;
 
-// ── Übergeordneter Demo/Live-Schalter (2026-09-26 ergänzt) ───────────
-// Der Status-Bin enthält jetzt zwei Zweige ({"demo": {...}, "live": {...}}),
-// je einer pro Koordinator-Prozess. MODUS_AKTUELL bestimmt, welcher Zweig
-// gerade angezeigt wird — "dupliziert" quasi alle Register (Kontostand,
-// Verlauf, Positionen, Nachrichten, Konto-Bewegungen), OHNE dass diese
-// selbst geändert werden mussten: sie alle nehmen weiterhin einfach
-// "daten" entgegen, nur WAS als "daten" hineingereicht wird, ändert sich.
-let MODUS_AKTUELL = "demo";
-let letztesVollDokument = null; // Cache: kompletter Bin-Inhalt ({demo, live})
-
-function zeigeGlobalenModusSchalter() {
-  const container = document.getElementById("globalModusSchalter");
-  container.innerHTML = "";
-  for (const [wert, label] of [["demo", "🎮 Demo"], ["live", "💰 Live"]]) {
-    const btn = document.createElement("button");
-    btn.textContent = label;
-    btn.className = wert === MODUS_AKTUELL ? "aktiv" : "";
-    btn.addEventListener("click", () => {
-      if (wert === MODUS_AKTUELL) return;
-      MODUS_AKTUELL = wert;
-      zeigeGlobalenModusSchalter();
-      zeigeStatus((letztesVollDokument || {})[MODUS_AKTUELL] || null);
-      zeigeSystemStatusUebersicht();
-      // Konto-Bewegungen hängen ebenfalls vom Modus ab -- bei
-      // vorhandenem Cache sofort neu anzeigen, sonst frisch laden.
-      if (letzteKontoBewegungenDokument) {
-        letzteKontoBewegungen = (letzteKontoBewegungenDokument.konto_bewegungen || {})[MODUS_AKTUELL] || [];
-        zeigeKonto();
-      }
-    });
-    container.appendChild(btn);
-  }
-}
-
-// ── System-Status-Register (2026-09-27 ergänzt, 27.09.2026 umgebaut) ─────
-// Zeigt für jedes der fünf Systeme NUR den gerade am oberen Schalter
-// gewählten Modus (Demo ODER Live) — der Schalter steuert jetzt ALLES,
-// nicht mehr nur die anderen Register. Grün = Herzschlag + Python-Prozess
-// aktuell UND nicht pausiert; Rot = pausiert oder eines von beiden meldet
-// Stillstand; Grau = für diesen Modus (meist: Live) noch gar nicht
-// eingerichtet — kein Prozess, den man pausieren könnte.
-const SYSTEME_FUER_STATUS_REGISTER = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
-
-function zeigeSystemStatusUebersicht() {
-  const container = document.getElementById("systemStatusListe");
-  if (!container) return;
-  container.innerHTML = "";
-  const voll = letztesVollDokument || {};
-  const modus = MODUS_AKTUELL;
-  const label = modus === "demo" ? "🎮 Demo" : "💰 Live";
-
-  // 2026-10-01 ergänzt: Bisher wurde das Alter von daten.zeitstempel hier
-  // nie geprüft — ein altes, eingefrorenes Dokument aus einem früheren
-  // Testlauf (z.B. Live, seither nicht mehr aktualisiert, weil kein
-  // Koordinator-Prozess mehr läuft) wurde unverändert als aktuell
-  // angezeigt, inkl. fälschlich "aktiv"/grün. Jetzt: dieselbe Schwelle wie
-  // die bestehende Verbindungs-Ausfall-Erkennung (VERBINDUNG_SCHWELLE_
-  // MINUTEN), konsistent mit dem Rest der App.
-  const datenRoh = voll[modus];
-  let zuAlt = false;
-  if (datenRoh && datenRoh.zeitstempel) {
-    const alterMin = (Date.now() - new Date(datenRoh.zeitstempel).getTime()) / 60000;
-    zuAlt = alterMin >= VERBINDUNG_SCHWELLE_MINUTEN;
-  }
-
-  for (const system of SYSTEME_FUER_STATUS_REGISTER) {
-    const daten = zuAlt ? null : datenRoh;
-    const pausiertObjekt = (daten || {}).pausiert;
-    // "eingerichtet" bewusst über positionen_je_system geprüft, nicht über
-    // pausiertObjekt: Letzteres kommt aus einer lokalen Datei, die bei
-    // älterem Stand nicht zwingend alle fünf Systeme als Schlüssel enthält
-    // (führte zu fälschlich "nicht eingerichtet"/inaktiv für tatsächlich
-    // laufende Systeme). positionen_je_system wird vom Koordinator IMMER
-    // für jedes in MAGIC_SYSTEME_JE_MODUS gelistete System befüllt, auch
-    // mit 0 offenen Positionen — zuverlässigeres Signal.
-    const eingerichtet = !!(daten && Object.prototype.hasOwnProperty.call(daten.positionen_je_system || {}, system));
-
-    let punktKlasse, statusText, deaktiviert, pausiertAktuell;
-    if (!eingerichtet) {
-      punktKlasse = "grau";
-      // 2026-10-01: unterscheidet jetzt "nie eingerichtet" von "war mal da,
-      // Daten aber zu alt" (zuAlt) -- zweites war bisher nicht erkennbar
-      // und sah optisch genauso aus wie "nicht eingerichtet".
-      statusText = zuAlt ? "nicht erreichbar (veraltet)" : "nicht eingerichtet";
-      deaktiviert = true;
-      pausiertAktuell = false;
-    } else {
-      pausiertAktuell = !!(pausiertObjekt || {})[system];
-      // ea_aktiv_je_system erst seit 2026-09-27 vorhanden -- fehlt das
-      // Feld (älterer Koordinator-Stand), wird "aktiv" angenommen statt
-      // faelschlich rot zu zeigen.
-      const eaAktivFeld = (daten.ea_aktiv_je_system || {})[system];
-      const eaAktiv = eaAktivFeld !== false;
-      const alsGanzesAktiv = eaAktiv && !pausiertAktuell;
-      punktKlasse = alsGanzesAktiv ? "gruen" : "rot";
-      statusText = pausiertAktuell ? "pausiert" : (eaAktiv ? "aktiv" : "inaktiv");
-      deaktiviert = false;
-    }
-
-    const karte = document.createElement("div");
-    karte.className = "system-status-karte";
-    const titel = document.createElement("h3");
-    titel.textContent = system;
-    karte.appendChild(titel);
-
-    const zeile = document.createElement("div");
-    zeile.className = "system-status-zeile";
-    zeile.innerHTML = `
-      <span class="system-status-links">
-        <span class="status-punkt ${punktKlasse}"></span>
-        ${label}<span class="system-status-text ${punktKlasse}">${statusText}</span>
-      </span>
-      <label class="schieber" title="${label} pausieren">
-        <input type="checkbox" ${pausiertAktuell ? "checked" : ""} ${deaktiviert ? "disabled" : ""}>
-        <span class="schieber-optik"></span>
-      </label>
-    `;
-    if (!deaktiviert) {
-      const checkbox = zeile.querySelector("input");
-      checkbox.addEventListener("change", () => {
-        pauseUmschalten(system, modus, checkbox.checked, checkbox);
-      });
-    }
-    karte.appendChild(zeile);
-    container.appendChild(karte);
-  }
-}
-
 let donutModus = "tag"; // "tag" | "woche" — gilt fuer BEIDE Donuts gemeinsam
 let ausgewaehltesSystemDonut = null; // null = alle Systeme zusammen — gilt fuer BEIDE Donuts
-const SYSTEM_NAMEN = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents", "TinuRobot"];
+const SYSTEM_NAMEN = ["CopyTrading", "CopyTradingEnhanced", "CopyTradingPlatinum", "TinuAgents"];
 
 function zeigeModusSchalter(containerId, aktuellerModus, beiKlick) {
   const container = document.getElementById(containerId);
@@ -1777,13 +1480,6 @@ function zeigeDonutSystemFilter() {
       zeichneKreisdiagramm();
       zeichneGewinnrateDonut();
       zeigeHandelshistorie();
-      // 2026-10-01 ergänzt: Kacheln (Tages-/Wochen-PnL, Offene Summe etc.)
-      // folgen jetzt ebenfalls diesem Filter -- zeigeStatus() aus demselben
-      // gecachten Dokument neu aufrufen, damit sie sich sofort mit
-      // aktualisieren statt nur beim nächsten Polling-Zyklus.
-      if (letztesVollDokument) {
-        zeigeStatus(letztesVollDokument[MODUS_AKTUELL] || null);
-      }
     });
     filter.appendChild(chip);
   }
@@ -1886,7 +1582,6 @@ const SYSTEM_ABKUERZUNG = {
   CopyTradingEnhanced: "CT_Enh",
   CopyTradingPlatinum: "CT_PLA",
   TinuAgents: "TA",
-  TinuRobot: "TR",
 };
 
 function zeigeHandelshistorie() {
@@ -1894,6 +1589,7 @@ function zeigeHandelshistorie() {
   const tabelle = document.getElementById("handelshistorieTabelle");
   const leer = document.getElementById("handelshistorieLeer");
   tabelle.innerHTML = "";
+  document.getElementById("symbolTabelle").innerHTML = "";
 
   const heute = new Date().toISOString().slice(0, 10);
   let zeitraumTrades = alleTradesDerWoche;
@@ -1902,7 +1598,7 @@ function zeigeHandelshistorie() {
     if (!ausgewaehltesDatum) {
       titel.textContent = "Handelshistorie";
       leer.style.display = "block";
-      passeErgebnisTabelleHoehe();
+      document.getElementById("symbolLeer").style.display = "block";
       return;
     }
     zeitraumTrades = alleTradesDerWoche.filter(t => t.datum === ausgewaehltesDatum);
@@ -1935,45 +1631,52 @@ function zeigeHandelshistorie() {
     `;
     tabelle.appendChild(tr);
   }
-  // 2026-09-29: Höhe erst NACH dem Befüllen anpassen -- der Titeltext oben
-  // (z.B. "Handelshistorie — CopyTradingPlatinum (Woche gesamt)") ändert je
-  // nach Filter seine Länge/Zeilenzahl, was die Position der Tabellenkarte
-  // verschiebt. Siehe passeErgebnisTabelleHoehe() weiter unten.
-  passeErgebnisTabelleHoehe();
+
+  zeigeSymbolTabelle(tagesTrades, zeitraumLabel);
 }
 
-// 2026-09-29: Die Tabellenkarte in "Ergebnisse" hatte bisher eine feste
-// max-height (640px) -- auf kleinen/grossen Bildschirmen entweder zu viel
-// Leerraum vor der Tabbar oder zu wenig sichtbare Zeilen. Jetzt wird die
-// verfügbare Höhe LIVE aus der tatsächlichen Position der Karte und der
-// Tabbar-Höhe berechnet, sodass die Karte immer bis knapp über die Tabbar
-// reicht -- abhängig von Geräteschirm UND aktueller Titelzeilen-Länge.
-// WICHTIG wegen #register-ergebnisse { zoom: 0.7 }: getBoundingClientRect()
-// liefert bereits die GEZOOMTEN (echten Bildschirm-)Pixel, aber ein CSS-Wert,
-// den wir per JS auf ein Element INNERHALB des gezoomten Registers setzen,
-// wird von dort aus wieder in LOKALEN (ungezoomten) Einheiten interpretiert
-// -- deshalb hier durch den Zoomfaktor geteilt, sonst wäre die Karte real
-// nur 70% so hoch wie berechnet.
-function passeErgebnisTabelleHoehe() {
-  const karte = document.querySelector("#register-ergebnisse .tabelle-karte");
-  const tabBar = document.getElementById("tabBar");
-  const register = document.getElementById("register-ergebnisse");
-  if (!karte || !tabBar || !register) return;
-  if (!register.classList.contains("aktiv")) return;  // unsichtbar: Layout nicht verlässlich messbar
+function zeigeSymbolTabelle(trades, zeitraumLabel) {
+  const tbody = document.getElementById("symbolTabelle");
+  const leer = document.getElementById("symbolLeer");
+  const titel = document.getElementById("symbolTitel");
+  tbody.innerHTML = "";
+  titel.textContent = ausgewaehltesSystemDonut
+    ? `Ergebnis je Symbol — ${SYSTEM_ABKUERZUNG[ausgewaehltesSystemDonut] || ausgewaehltesSystemDonut} (${zeitraumLabel})`
+    : `Ergebnis je Symbol — ${zeitraumLabel}`;
+  leer.style.display = trades.length === 0 ? "block" : "none";
 
-  const zoomFaktor = parseFloat(getComputedStyle(register).zoom) || 1;
-  const kartenObenReal = karte.getBoundingClientRect().top;      // bereits in echten Bildschirm-Pixeln
-  const tabBarHoeheReal = tabBar.getBoundingClientRect().height;
-  const pufferReal = 16;  // etwas Luft zwischen Kartenrand und Tabbar
-
-  const verfuegbarReal = window.innerHeight - kartenObenReal - tabBarHoeheReal - pufferReal;
-  const verfuegbarLokal = verfuegbarReal / zoomFaktor;
-  karte.style.maxHeight = Math.max(200, verfuegbarLokal) + "px";
+  const je = {};
+  for (const t of trades) {
+    const e = je[t.symbol] || (je[t.symbol] = { n: 0, w: 0, sum: 0 });
+    e.n++;
+    if (t.gewinn > 0) e.w++;
+    e.sum += t.gewinn;
+  }
+  const zeilen = Object.entries(je).sort((a, b) => b[1].sum - a[1].sum);
+  let gn = 0, gw = 0, gs = 0;
+  for (const [sym, e] of zeilen) {
+    gn += e.n; gw += e.w; gs += e.sum;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${sym}</td>
+      <td class="zahl-spalte">${e.n}</td>
+      <td class="zahl-spalte">${Math.round(100 * e.w / e.n)}%</td>
+      <td class="zahl-spalte ${e.sum >= 0 ? "pos" : "neg"}">${formatEUR(e.sum)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  if (zeilen.length > 1) {
+    const tr = document.createElement("tr");
+    tr.style.fontWeight = "700";
+    tr.innerHTML = `
+      <td>Total</td>
+      <td class="zahl-spalte">${gn}</td>
+      <td class="zahl-spalte">${Math.round(100 * gw / gn)}%</td>
+      <td class="zahl-spalte ${gs >= 0 ? "pos" : "neg"}">${formatEUR(gs)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
 }
-
-window.addEventListener("resize", passeErgebnisTabelleHoehe);
-window.addEventListener("orientationchange", passeErgebnisTabelleHoehe);
-
 
 // ── Kreisdiagramm: Ergebnisse eines Tages je System (reines SVG) ─────
 const SYSTEM_FARBEN = {
@@ -1981,7 +1684,6 @@ const SYSTEM_FARBEN = {
   CopyTradingEnhanced: "#5aa9bb",
   CopyTradingPlatinum: "#9b8ad1",
   TinuAgents: "#4caf7d",
-  TinuRobot: "#e0785a",
   Unbekannt: "#5a6270",
 };
 
@@ -2224,7 +1926,6 @@ document.querySelectorAll("nav button").forEach(btn => {
     document.getElementById(`register-${btn.dataset.register}`).classList.add("aktiv");
     positioniereWelle();
     if (btn.dataset.register === "konto") ladeKontoBewegungen();
-    if (btn.dataset.register === "ergebnisse") passeErgebnisTabelleHoehe();
   });
 });
 
@@ -2239,8 +1940,6 @@ positioniereWelle();
 // noch, während die Seite tatsächlich sichtbar ist; beim Wiederöffnen
 // sofortiger Refresh, danach im festgelegten Takt (AKTUALISIERUNG_SEKUNDEN).
 let pollingIntervall = null;
-zeigeGlobalenModusSchalter(); // sofort sichtbar, noch bevor der erste Fetch zurückkommt
-zeigeSystemStatusUebersicht(); // dito -- zeigt initial "nicht eingerichtet" (grau), bis Daten da sind
 
 function starteNormalesPolling() {
   if (pollingIntervall) return; // läuft schon
