@@ -705,6 +705,23 @@
     </table>
     </div>
     <p class="kreisdiagramm-leer" id="handelshistorieLeer" style="display:none;">Keine Trades an diesem Tag.</p>
+
+    <!-- 2026-10-07: zweite Tabelle je Handelssymbol, gleicher Filter wie die Handelshistorie -->
+    <h2 id="symbolTitel" style="margin-top:18px;">Ergebnis je Symbol</h2>
+    <div class="tabelle-karte tabelle-ergebnisse-kompakt">
+    <table>
+      <thead>
+        <tr>
+          <th>Symbol</th>
+          <th class="zahl-spalte">Trades</th>
+          <th class="zahl-spalte">Gewinnrate</th>
+          <th class="zahl-spalte">Ergebnis</th>
+        </tr>
+      </thead>
+      <tbody id="symbolTabelle"></tbody>
+    </table>
+    </div>
+    <p class="kreisdiagramm-leer" id="symbolLeer" style="display:none;">Keine Trades im gewählten Zeitraum.</p>
   </section>
 
   <section id="register-trades" class="register">
@@ -1264,7 +1281,7 @@ async function ladeStatus() {
 // Status-Zeitstempel ist. Erscheint als normale Alert-Meldung im
 // Nachrichten-Register (nutzt automatisch denselben Badge-/Ton-
 // Mechanismus wie alle anderen Meldungen) statt als eigenes Banner.
-const VERBINDUNG_SCHWELLE_MINUTEN = 20; // 2026-10-13: Koordinator schreibt tagsüber/nachts alle 15 min -> Schwelle darüber (vorher 5 min, zeigte nach 15 min fälschlich "veraltet")
+const VERBINDUNG_SCHWELLE_MINUTEN = 20; // 2026-10-13: Koordinator schreibt alle 15 min -> Schwelle darueber (vorher 5 min: zeigte nach 15 min faelschlich "veraltet")
 let letzterBekannterZeitstempel = null;
 let verbindungsAusfallNachricht = null; // synthetisch, nicht vom Server
 
@@ -1894,6 +1911,7 @@ function zeigeHandelshistorie() {
   const tabelle = document.getElementById("handelshistorieTabelle");
   const leer = document.getElementById("handelshistorieLeer");
   tabelle.innerHTML = "";
+  document.getElementById("symbolTabelle").innerHTML = "";
 
   const heute = new Date().toISOString().slice(0, 10);
   let zeitraumTrades = alleTradesDerWoche;
@@ -1902,6 +1920,7 @@ function zeigeHandelshistorie() {
     if (!ausgewaehltesDatum) {
       titel.textContent = "Handelshistorie";
       leer.style.display = "block";
+      document.getElementById("symbolLeer").style.display = "block";
       passeErgebnisTabelleHoehe();
       return;
     }
@@ -1935,11 +1954,59 @@ function zeigeHandelshistorie() {
     `;
     tabelle.appendChild(tr);
   }
+  zeigeSymbolTabelle(tagesTrades, zeitraumLabel);
+
   // 2026-09-29: Höhe erst NACH dem Befüllen anpassen -- der Titeltext oben
   // (z.B. "Handelshistorie — CopyTradingPlatinum (Woche gesamt)") ändert je
   // nach Filter seine Länge/Zeilenzahl, was die Position der Tabellenkarte
   // verschiebt. Siehe passeErgebnisTabelleHoehe() weiter unten.
   passeErgebnisTabelleHoehe();
+}
+
+// 2026-10-07: Aggregation der gefilterten Trades je Symbol (Anzahl,
+// Gewinnrate, Summe) -- nutzt exakt dieselbe Trade-Auswahl wie die
+// Handelshistorie darüber (Tag/Woche, Datum, System-Filter).
+function zeigeSymbolTabelle(trades, zeitraumLabel) {
+  const tbody = document.getElementById("symbolTabelle");
+  const leer = document.getElementById("symbolLeer");
+  const titel = document.getElementById("symbolTitel");
+  tbody.innerHTML = "";
+  titel.textContent = ausgewaehltesSystemDonut
+    ? `Ergebnis je Symbol — ${SYSTEM_ABKUERZUNG[ausgewaehltesSystemDonut] || ausgewaehltesSystemDonut} (${zeitraumLabel})`
+    : `Ergebnis je Symbol — ${zeitraumLabel}`;
+  leer.style.display = trades.length === 0 ? "block" : "none";
+
+  const je = {};
+  for (const t of trades) {
+    const e = je[t.symbol] || (je[t.symbol] = { n: 0, w: 0, sum: 0 });
+    e.n++;
+    if (t.gewinn > 0) e.w++;
+    e.sum += t.gewinn;
+  }
+  const zeilen = Object.entries(je).sort((a, b) => b[1].sum - a[1].sum);
+  let gn = 0, gw = 0, gs = 0;
+  for (const [sym, e] of zeilen) {
+    gn += e.n; gw += e.w; gs += e.sum;
+    const tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${sym}</td>
+      <td class="zahl-spalte">${e.n}</td>
+      <td class="zahl-spalte">${Math.round(100 * e.w / e.n)}%</td>
+      <td class="zahl-spalte ${e.sum >= 0 ? "pos" : "neg"}">${formatEUR(e.sum)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
+  if (zeilen.length > 1) {
+    const tr = document.createElement("tr");
+    tr.style.fontWeight = "700";
+    tr.innerHTML = `
+      <td>Total</td>
+      <td class="zahl-spalte">${gn}</td>
+      <td class="zahl-spalte">${Math.round(100 * gw / gn)}%</td>
+      <td class="zahl-spalte ${gs >= 0 ? "pos" : "neg"}">${formatEUR(gs)}</td>
+    `;
+    tbody.appendChild(tr);
+  }
 }
 
 // 2026-09-29: Die Tabellenkarte in "Ergebnisse" hatte bisher eine feste
